@@ -38,15 +38,18 @@ models:
                               # against the derived content hash
     response: { hstix50: "ft" }   # {name: units}; compact map or object form
     covariates: { atb: "year" }   # {name: units-or-kind}; optional, default []
+    prediction_function: "..."    # REQUIRED for both model kinds
     taxa: [{ genus: Quercus, species: alba }]   # optional
     region: [Oregon]          # optional
     component: stem           # optional
     covt_defs: { atb: "age at breast height" }   # optional definitions
     response_definition: "..."   # optional
     descriptors: {}           # optional
+    description: "..."        # optional; human-readable prose on what the
+                              # model/set is
     notes: "..."              # optional
     parameters: { a: 22.6, b: 0.5 }   # fixed_effects only
-    equation: "a * atb^b"            # fixed_effects only
+    prediction_function: "a * atb^b"   # required (see above)
 ```
 
 ### Model kinds
@@ -54,13 +57,13 @@ models:
 The `type` field picks one of two structures:
 
 - **`fixed_effects`** — a single model with inline `parameters` (a
-  `{name: float}` map) and an `equation` string.
-- **`fixed_effects_set`** — a parameterized family: `parameter_names`
-  (the ordered list of parameter names) plus a `specifications` table, where
-  each row holds a `{name: float}` `parameters` map and may carry its own
-  optional `taxa`, `region`, `component`, and `descriptors`. `ingest`
-  cross-checks every row against `parameter_names` and errors on any parameter
-  not declared there.
+  `{name: float}` map) plus the shared `prediction_function` string.
+- **`fixed_effects_set`** — a parameterized family: a `specifications` table,
+  where each row holds a `{name: float}` `parameters` map and may carry its own
+  optional `taxa`, `region`, `component`, and `descriptors`. The set shares a
+  single `prediction_function`. Every specification row must use identical
+  parameter keys (validated); parameter names are therefore derived from the
+  rows, not declared separately.
 
 ### Taxon
 

@@ -138,7 +138,7 @@ model_to_list <- function(m) {
     ),
     descriptors = desc_to_list(m@descriptors),
     parameters = params,
-    equation = paste(fn_body_text(m@predict_fn), collapse = "; "),
+    prediction_function = paste(fn_body_text(m@predict_fn), collapse = "; "),
     covariate_definitions = if (length(m@covariate_definitions) > 0) {
       Map(
         function(n, d) list(name = n, definition = d),

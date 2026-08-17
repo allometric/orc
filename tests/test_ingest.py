@@ -58,7 +58,7 @@ def test_set_parameter_consistency():
         tmp.write_text(yaml.safe_dump(data, sort_keys=False))
         result = ingest(tmp)
         assert not result.ok
-        assert any("not in parameter_names" in e.message for e in result.errors)
+        assert any("identical parameter keys" in e.message for e in result.errors)
     finally:
         tmp.unlink(missing_ok=True)
 

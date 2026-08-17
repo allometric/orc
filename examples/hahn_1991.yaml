@@ -14,7 +14,7 @@ models:
     response: { cuvol: "ft3" }
     covariates:
       dsob: "in"
-    parameter_names: [b_1, b_2, b_3]
+    prediction_function: "b_1 + b_2 * dsob^2 + b_3 * dsob^3"
     specifications:
       - parameters: { b_1: 122.77, b_2: 0.4148, b_3: -2.397e-05 }
         taxa:

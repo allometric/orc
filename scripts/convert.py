@@ -4,7 +4,8 @@
 Reads the neutral JSON produced by ``scripts/harvest.R`` and writes one YAML
 file per publication that conforms to the ``orc`` schema. Flattened model
 records are grouped back into ``fixed_effects`` vs ``fixed_effects_set`` based
-on shared response/covariates/equation, and descriptors that are constant
+on shared response/covariates/prediction_function, and descriptors that are
+constant
 across a whole publication are hoisted into the ``publication`` block.
 
 Like harvest.R, this is a THROWAWAY migration tool, kept in the repo only so
@@ -141,7 +142,7 @@ def group_key(record: dict) -> tuple:
         record["response"]["name"],
         record["response"]["unit"],
         covs,
-        record.get("equation", ""),
+        record.get("prediction_function", ""),
         covdefs,
         record.get("response_definition", ""),
     )
@@ -226,7 +227,7 @@ def build_models(groups: list[list[dict]], pub_level: set[str], pub_taxa) -> lis
             taxa, model_descs = split_scope(record, pub_level, pub_taxa)
             common["type"] = "fixed_effects"
             common["parameters"] = Flow(clean_parameters(record["parameters"]))
-            common["equation"] = record["equation"]
+            common["prediction_function"] = record["prediction_function"]
             scope = scope_to_fields(taxa, model_descs)
             if scope.get("taxa"):
                 scope["taxa"] = [Flow(t) for t in scope["taxa"]]
@@ -237,7 +238,7 @@ def build_models(groups: list[list[dict]], pub_level: set[str], pub_taxa) -> lis
             continue
 
         common["type"] = "fixed_effects_set"
-        common["parameter_names"] = list(clean_parameters(records[0]["parameters"]))
+        common["prediction_function"] = records[0]["prediction_function"]
         plain_specs = []
         for record in records:
             taxa, model_descs = split_scope(record, pub_level, pub_taxa)

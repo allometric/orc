@@ -11,7 +11,7 @@ models:
     response: { hstix50: "ft" }  # {name: units}
     covariates: { atb: "year" }  # {name: units-or-kind}
     parameters: { a: 22.6 }
-    equation: "..."
+    prediction_function: "4.5 + a * exp((b - c * log(atb)) * (hst - 4.5))"
 ```
 
 Design choices encoded here:
@@ -114,6 +114,7 @@ class ModelBase(BaseModel):
 
     name: str
     type: str
+    prediction_function: str
     response: Response
     covariates: list[Covariate] = Field(default_factory=list)
     taxa: list[Taxon] | None = None
@@ -122,6 +123,7 @@ class ModelBase(BaseModel):
     covt_defs: dict[str, str] | None = None
     response_definition: str | None = None
     descriptors: dict[str, Scalar | list] | None = None
+    description: str | None = None
     notes: str | None = None
     id: str | None = Field(default=None, pattern=ID_PATTERN.pattern)
 
@@ -151,7 +153,6 @@ class ModelBase(BaseModel):
 class FixedEffectsModel(ModelBase):
     type: Literal["fixed_effects"] = "fixed_effects"
     parameters: dict[str, float]
-    equation: str
 
 
 class Specification(BaseModel):
@@ -168,8 +169,19 @@ class Specification(BaseModel):
 
 class FixedEffectsSetModel(ModelBase):
     type: Literal["fixed_effects_set"] = "fixed_effects_set"
-    parameter_names: list[str]
     specifications: list[Specification]
+
+    @model_validator(mode="after")
+    def _consistent_parameter_keys(self) -> FixedEffectsSetModel:
+        if not self.specifications:
+            raise ValueError("a fixed_effects_set needs at least one specification")
+        key_sets = [tuple(spec.parameters) for spec in self.specifications]
+        if any(keys != key_sets[0] for keys in key_sets[1:]):
+            raise ValueError(
+                "all specifications in a set must have identical parameter keys, "
+                f"got {sorted({k for ks in key_sets for k in ks})}"
+            )
+        return self
 
 
 Model = Annotated[
@@ -245,12 +257,13 @@ class RegistryRecord(BaseModel):
     response: Response
     covariates: list[Covariate]
     parameters: dict[str, float] | None = None
-    equation: str | None = None
+    prediction_function: str
     parameter_names: list[str] | None = None
     taxa: list[Taxon] | None = None
     region: list[str] | None = None
     component: str | None = None
     covt_defs: dict[str, str] | None = None
     response_definition: str | None = None
+    description: str | None = None
     descriptors: dict[str, Scalar | list] | None = None
     source_file: str

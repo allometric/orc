@@ -5,8 +5,7 @@ Pipeline per file:
 1. parse YAML
 2. validate against :class:`orc.schema.ModelsFile`
 3. derive each model's 8-char content id (or cross-check one already in source)
-4. cross-validate parameterized sets (``parameter_names`` vs. spec rows)
-5. flatten to one :class:`RegistryRecord` per model
+4. flatten to one :class:`RegistryRecord` per model
 """
 
 from __future__ import annotations
@@ -92,20 +91,6 @@ def model_id(model: Model) -> str:
     return content_hash(payload)
 
 
-def _validate_set(model: FixedEffectsSetModel) -> list[str]:
-    """Cross-check a set's parameter_names against every specification row."""
-    problems: list[str] = []
-    if not model.parameter_names:
-        problems.append("parameter_names must not be empty")
-    for i, spec in enumerate(model.specifications):
-        unknown = sorted(set(spec.parameters) - set(model.parameter_names))
-        if unknown:
-            problems.append(
-                f"specification {i} uses parameters not in parameter_names: {unknown}"
-            )
-    return problems
-
-
 def ingest(root: str | Path) -> IngestResult:
     """Ingest every YAML file under ``root`` into a validated registry."""
     result = IngestResult()
@@ -132,12 +117,6 @@ def ingest(root: str | Path) -> IngestResult:
             else:
                 model.id = computed
 
-            if isinstance(model, FixedEffectsSetModel):
-                for problem in _validate_set(model):
-                    result.errors.append(
-                        IngestError(path=path, model_name=model.name, message=problem)
-                    )
-
             record = RegistryRecord(
                 id=computed,
                 pub_id=models_file.publication.key,
@@ -149,11 +128,9 @@ def ingest(root: str | Path) -> IngestResult:
                 parameters=(
                     model.parameters if isinstance(model, FixedEffectsModel) else None
                 ),
-                equation=(
-                    model.equation if isinstance(model, FixedEffectsModel) else None
-                ),
+                prediction_function=model.prediction_function,
                 parameter_names=(
-                    model.parameter_names
+                    list(model.specifications[0].parameters)
                     if isinstance(model, FixedEffectsSetModel)
                     else None
                 ),
@@ -162,6 +139,7 @@ def ingest(root: str | Path) -> IngestResult:
                 component=model.component,
                 covt_defs=model.covt_defs,
                 response_definition=model.response_definition,
+                description=model.description,
                 descriptors=model.descriptors,
                 source_file=str(path),
             )
