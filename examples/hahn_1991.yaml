@@ -1,0 +1,26 @@
+publication:
+  key: hahn_1991
+  bibtype: article
+  title: "Stem volume equations for forest trees in the north central region"
+  author: "Hahn, Jerold T."
+  year: 1991
+  descriptors:
+    country: US
+    region: [US-MN, US-WI, US-MI]
+
+models:
+  - name: cuvol
+    type: fixed_effects_set
+    response: { cuvol: "ft3" }
+    covariates:
+      dsob: "in"
+    parameter_names: [b_1, b_2, b_3]
+    specifications:
+      - parameters: { b_1: 122.77, b_2: 0.4148, b_3: -2.397e-05 }
+        taxa:
+          - { genus: Pinus, species: resinosa }
+          - { genus: Pinus, species: strobus }
+          - { genus: Pinus, species: banksiana }
+      - parameters: { b_1: 0.25, b_2: 1.3, b_3: -0.001 }
+        taxa:
+          - { genus: Acer, species: saccharum }

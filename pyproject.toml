@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "orc"
+version = "0.1.0"
+description = "Orchestrate the production, validation, and indexing of allometric/models v4 YAML"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "PyYAML>=6.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[project.scripts]
+orc = "orc.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["orc"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
