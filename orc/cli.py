@@ -35,7 +35,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     ingest_p = sub.add_parser("ingest", help="validate a directory of model YAML")
-    ingest_p.add_argument("path", type=Path, help="YAML file or directory to ingest")
+    ingest_p.add_argument(
+        "path",
+        type=Path,
+        nargs="?",
+        default=Path("."),
+        help="YAML file or directory to ingest (default: current directory)",
+    )
     ingest_p.add_argument(
         "--registry",
         type=Path,
