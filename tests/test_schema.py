@@ -124,6 +124,23 @@ def test_set_parameter_names_derived(barnes_text):
     assert [p for p in parsed.models[0].specifications[0].parameters] == ["b", "a"]
 
 
+def test_set_parameter_key_order_irrelevant(barnes_text):
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["models"][0] = {
+        "name": "set",
+        "type": "fixed_effects_set",
+        "response": { "x": "m" },
+        "prediction_function": "a * x^b",
+        "specifications": [
+            { "parameters": { "a": 1.0, "b": 2.0 } },
+            { "parameters": { "b": 3.0, "a": 4.0 } },
+        ],
+    }
+    ModelsFile.model_validate(data)
+
+
 def test_description_accepted(barnes_text):
     import yaml
 

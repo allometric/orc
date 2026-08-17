@@ -175,7 +175,7 @@ class FixedEffectsSetModel(ModelBase):
     def _consistent_parameter_keys(self) -> FixedEffectsSetModel:
         if not self.specifications:
             raise ValueError("a fixed_effects_set needs at least one specification")
-        key_sets = [tuple(spec.parameters) for spec in self.specifications]
+        key_sets = [set(spec.parameters) for spec in self.specifications]
         if any(keys != key_sets[0] for keys in key_sets[1:]):
             raise ValueError(
                 "all specifications in a set must have identical parameter keys, "
