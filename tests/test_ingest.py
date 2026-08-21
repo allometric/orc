@@ -52,7 +52,7 @@ def test_source_id_mismatch_reported():
 def test_set_parameter_consistency():
     text = (EXAMPLES / "hahn_1991.yaml").read_text()
     data = yaml.safe_load(text)
-    data["models"][0]["specifications"][0]["parameters"]["b_99"] = 1.0
+    data["model_sets"][0]["specifications"][0]["parameters"]["b_99"] = 1.0
     tmp = Path("__tmp_hahn.yaml")
     try:
         tmp.write_text(yaml.safe_dump(data, sort_keys=False))

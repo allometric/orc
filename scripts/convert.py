@@ -148,15 +148,17 @@ def group_key(record: dict) -> tuple:
     )
 
 
-def split_scope(record: dict, pub_level: set[str], pub_taxa) -> tuple[list | None, dict]:
-    """Return (taxa, rest-of-model-descriptors) after removing pub-constant scope."""
+def split_scope(record: dict, pub_level: set[str]) -> tuple[list | None, dict]:
+    """Return (taxa, rest-of-model-descriptors) after removing pub-constant descs.
+
+    Constant descriptors hoist to the publication block; taxa stays at the
+    model/spec level (it is not a publication field).
+    """
     descs = clean_descriptors(record)
     model_descs = {k: v for k, v in descs.items() if k not in pub_level}
     model_descs.pop("taxa", None)
 
     taxa = descs.get("taxa")
-    if taxa is None or _stable(taxa) == _stable(pub_taxa):
-        taxa = None
     return taxa, model_descs
 
 
@@ -175,7 +177,7 @@ def scope_to_fields(taxa: list | None, model_descs: dict) -> dict:
     return out
 
 
-def build_publication(pub: dict, pub_level_descs: dict, pub_taxa: list | None) -> dict:
+def build_publication(pub: dict, pub_level_descs: dict) -> dict:
     cit = pub["citation"]
     out: dict = {
         "key": pub["key"],
@@ -189,17 +191,19 @@ def build_publication(pub: dict, pub_level_descs: dict, pub_taxa: list | None) -
             out[f] = cit[f]
     if pub_level_descs:
         out["descriptors"] = pub_level_descs
-    if pub_taxa:
-        out["taxa"] = pub_taxa
     return out
 
 
-def build_models(groups: list[list[dict]], pub_level: set[str], pub_taxa) -> list[dict]:
+def build_models(groups: list[list[dict]], pub_level: set[str]) -> list[dict]:
     models: list[dict] = []
+    model_sets: list[dict] = []
     name_counts: dict[str, int] = {}
 
     def flow_taxa(taxa: list) -> list:
         return [Flow(t) for t in taxa]
+
+    def append_common(common: dict) -> None:
+        (model_sets if common["type"] == "fixed_effects_set" else models).append(common)
 
     for records in groups:
         base = records[0]["response"]["name"]
@@ -224,7 +228,7 @@ def build_models(groups: list[list[dict]], pub_level: set[str], pub_taxa) -> lis
 
         if len(records) == 1:
             record = records[0]
-            taxa, model_descs = split_scope(record, pub_level, pub_taxa)
+            taxa, model_descs = split_scope(record, pub_level)
             common["type"] = "fixed_effects"
             common["parameters"] = Flow(clean_parameters(record["parameters"]))
             common["prediction_function"] = record["prediction_function"]
@@ -234,21 +238,21 @@ def build_models(groups: list[list[dict]], pub_level: set[str], pub_taxa) -> lis
             if scope.get("descriptors"):
                 scope["descriptors"] = Flow(scope["descriptors"])
             common.update(scope)
-            models.append(common)
+            append_common(common)
             continue
 
         common["type"] = "fixed_effects_set"
         common["prediction_function"] = records[0]["prediction_function"]
         plain_specs = []
         for record in records:
-            taxa, model_descs = split_scope(record, pub_level, pub_taxa)
+            taxa, model_descs = split_scope(record, pub_level)
             spec: dict = {"parameters": clean_parameters(record["parameters"])}
             spec.update(scope_to_fields(taxa, model_descs))
             plain_specs.append(spec)
         common["specifications"] = [Flow(s) for s in dedupe_specs(plain_specs)]
-        models.append(common)
+        append_common(common)
 
-    return models
+    return models, model_sets
 
 
 def convert_pub(data: dict) -> dict:
@@ -264,8 +268,6 @@ def convert_pub(data: dict) -> dict:
     pub_level = {k for k in all_keys if constant(k)}
     pub_level_descs = {k: all_descs[0][k] for k in pub_level if k != "taxa"}
 
-    pub_taxa = all_descs[0].get("taxa") if "taxa" in pub_level else None
-
     groups: list[list[dict]] = []
     seen: dict[tuple, int] = {}
     for record in records:
@@ -275,10 +277,16 @@ def convert_pub(data: dict) -> dict:
             groups.append([])
         groups[seen[key]].append(record)
 
-    return {
-        "publication": build_publication(data["pub"], pub_level_descs, pub_taxa),
-        "models": build_models(groups, pub_level, pub_taxa),
+    models, model_sets = build_models(groups, pub_level)
+
+    out: dict = {
+        "publication": build_publication(data["pub"], pub_level_descs),
     }
+    if models:
+        out["models"] = models
+    if model_sets:
+        out["model_sets"] = model_sets
+    return out
 
 
 def main() -> int:

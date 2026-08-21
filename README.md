@@ -9,11 +9,12 @@ registry (one record per model) for downstream compilation to Arrow/Parquet.
 
 ## Schema
 
-Every publication is a single YAML file with two top-level keys: `publication`
-(BibTeX metadata) and `models` (one or more models). The schema is declared in
-`orc/schema.py`; all fields below are mandatory unless marked optional, and
-unknown keys are rejected everywhere (`extra="forbid"`), so typos surface as
-validation errors rather than being silently absorbed.
+Every publication is a single YAML file with `publication` (BibTeX metadata)
+plus one or both of `models` (individual models) and `model_sets`
+(parameterized families). The schema is declared in `orc/schema.py`; all fields
+below are mandatory unless marked optional, and unknown keys are rejected
+everywhere (`extra="forbid"`), so typos surface as validation errors rather
+than being silently absorbed.
 
 ```yaml
 publication:
@@ -26,19 +27,16 @@ publication:
                               # doi, url, publisher, institution, month, note,
                               # school, organization, series, booktitle, editor,
                               # edition, howpublished, number, address
-  taxa:                       # optional; one or more taxon objects
-    - family: Fagaceae
-      genus: Quercus
   descriptors: {}             # optional free-form key/value metadata
 
 models:
   - name: hstix50             # unique within the file
-    type: fixed_effects       # discriminates the two model kinds
+    type: fixed_effects       # required; extension point for future kinds
     id: a1b2c3d4              # optional 8-char hex; ingest cross-checks it
                               # against the derived content hash
     response: { hstix50: "ft" }   # {name: units}; compact map or object form
     covariates: { atb: "year" }   # {name: units-or-kind}; optional, default []
-    prediction_function: "..."    # REQUIRED for both model kinds
+    prediction_function: "..."    # REQUIRED
     taxa: [{ genus: Quercus, species: alba }]   # optional
     region: [Oregon]          # optional
     component: stem           # optional
@@ -49,21 +47,38 @@ models:
                               # model/set is
     notes: "..."              # optional
     parameters: { a: 22.6, b: 0.5 }   # fixed_effects only
-    prediction_function: "a * atb^b"   # required (see above)
+
+model_sets:
+  - name: cuvol               # unique within the file
+    type: fixed_effects_set   # required; extension point for future kinds
+    response: { cuvol: "ft3" }
+    covariates: { dsob: "in" }
+    prediction_function: "b_1 + b_2 * dsob^2"   # REQUIRED
+    taxa: [{ genus: Quercus, species: alba }]   # optional set-level scope
+    region: [Oregon]          # optional set-level scope
+    component: stem           # optional set-level scope
+    descriptors: {}           # optional set-level scope
+    specifications:           # one row per parameter combination
+      - parameters: { b_1: 122.77, b_2: 0.4148 }
+        taxa: [{ genus: Pinus, species: resinosa }]   # optional per-row scope
+        region: [Oregon]      # optional per-row scope
+        component: stem       # optional per-row scope
+        descriptors: {}       # optional per-row scope
 ```
 
 ### Model kinds
 
-The `type` field picks one of two structures:
+The top-level key picks the structure, and `type` (required on every entry) is
+the extension point for future model kinds:
 
-- **`fixed_effects`** — a single model with inline `parameters` (a
+- **`models` / `fixed_effects`** — a single model with inline `parameters` (a
   `{name: float}` map) plus the shared `prediction_function` string.
-- **`fixed_effects_set`** — a parameterized family: a `specifications` table,
-  where each row holds a `{name: float}` `parameters` map and may carry its own
-  optional `taxa`, `region`, `component`, and `descriptors`. The set shares a
-  single `prediction_function`. Every specification row must use identical
-  parameter keys (validated); parameter names are therefore derived from the
-  rows, not declared separately.
+- **`model_sets` / `fixed_effects_set`** — a parameterized family: a
+  `specifications` table, where each row holds a `{name: float}` `parameters`
+  map and may carry its own optional `taxa`, `region`, `component`, and
+  `descriptors`. The set shares a single `prediction_function`. Every
+  specification row must use identical parameter keys (validated); parameter
+  names are therefore derived from the rows, not declared separately.
 
 ### Taxon
 
@@ -79,8 +94,14 @@ and errors on mismatch. When absent, `ingest` derives and assigns the hash.
 ## Install
 
 ```sh
-pip install .
+python3 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
 ```
+
+A virtual environment is required on Debian/Ubuntu, where system-wide
+installs are blocked by PEP 668 (`externally-managed-environment`). The
+editable install keeps `orc` in sync with this checkout; add `source .venv/bin/activate`
+if you prefer activating the venv instead of calling `.venv/bin/orc` directly.
 
 ## Usage
 

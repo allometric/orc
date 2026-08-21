@@ -9,10 +9,6 @@ publication:
   descriptors:
     country: US
     region: [US-OR, US-WA]
-  taxa:
-    - family: Pinaceae
-      genus: Tsuga
-      species: heterophylla
 
 models:
   - name: hstix50
@@ -21,6 +17,10 @@ models:
     covariates:
       atb: "year"
       hst: "ft"
+    taxa:
+      - family: Pinaceae
+        genus: Tsuga
+        species: heterophylla
     parameters:
       a: 22.6
       b: 0.014482

@@ -18,14 +18,7 @@ from typing import Iterator
 import yaml
 
 from orc.ids import content_hash
-from orc.schema import (
-    FixedEffectsModel,
-    FixedEffectsSetModel,
-    Model,
-    ModelsFile,
-    RegistryRecord,
-)
-
+from orc.schema import Model, ModelsFile, RegistryRecord
 YAML_SUFFIXES = (".yaml", ".yml")
 
 
@@ -104,48 +97,16 @@ def ingest(root: str | Path) -> IngestResult:
             continue
 
         for model in models_file.models:
-            computed = model_id(model)
-            if model.id is not None:
-                if model.id != computed:
-                    result.errors.append(
-                        IngestError(
-                            path=path,
-                            model_name=model.name,
-                            message=f"id {model.id!r} does not match content hash {computed!r}",
-                        )
-                    )
-            else:
-                model.id = computed
-
-            record = RegistryRecord(
-                id=computed,
-                pub_id=models_file.publication.key,
-                pub_year=models_file.publication.year,
-                model_name=model.name,
-                model_type=model.type,
-                response=model.response,
-                covariates=model.covariates,
-                parameters=(
-                    model.parameters if isinstance(model, FixedEffectsModel) else None
-                ),
-                prediction_function=model.prediction_function,
-                parameter_names=(
-                    list(model.specifications[0].parameters)
-                    if isinstance(model, FixedEffectsSetModel)
-                    else None
-                ),
-                taxa=model.taxa,
-                region=model.region,
-                component=model.component,
-                covt_defs=model.covt_defs,
-                response_definition=model.response_definition,
-                description=model.description,
-                descriptors=model.descriptors,
-                source_file=str(path),
+            _register_model(
+                result, models_file, model, path, seen_ids,
+                parameters=model.parameters,
+                parameter_names=None,
             )
-            result.registry.append(record)
-            seen_ids.setdefault(computed, []).append(
-                f"{models_file.publication.key}/{model.name}"
+        for model_set in models_file.model_sets:
+            _register_model(
+                result, models_file, model_set, path, seen_ids,
+                parameters=None,
+                parameter_names=list(model_set.specifications[0].parameters),
             )
 
     for model_id_, refs in seen_ids.items():
@@ -158,6 +119,56 @@ def ingest(root: str | Path) -> IngestResult:
             )
 
     return result
+
+
+def _register_model(
+    result: IngestResult,
+    models_file: ModelsFile,
+    model: Model,
+    path: Path,
+    seen_ids: dict[str, list[str]],
+    *,
+    parameters: dict[str, float] | None,
+    parameter_names: list[str] | None,
+) -> None:
+    """Validate the id and append one flat registry record for ``model``."""
+    computed = model_id(model)
+    if model.id is not None:
+        if model.id != computed:
+            result.errors.append(
+                IngestError(
+                    path=path,
+                    model_name=model.name,
+                    message=f"id {model.id!r} does not match content hash {computed!r}",
+                )
+            )
+    else:
+        model.id = computed
+
+    record = RegistryRecord(
+        id=computed,
+        pub_id=models_file.publication.key,
+        pub_year=models_file.publication.year,
+        model_name=model.name,
+        model_type=model.type,
+        response=model.response,
+        covariates=model.covariates,
+        parameters=parameters,
+        prediction_function=model.prediction_function,
+        parameter_names=parameter_names,
+        taxa=model.taxa,
+        region=model.region,
+        component=model.component,
+        covt_defs=model.covt_defs,
+        response_definition=model.response_definition,
+        description=model.description,
+        descriptors=model.descriptors,
+        source_file=str(path),
+    )
+    result.registry.append(record)
+    seen_ids.setdefault(computed, []).append(
+        f"{models_file.publication.key}/{model.name}"
+    )
 
 
 def write_registry_jsonl(result: IngestResult, out: str | Path) -> None:

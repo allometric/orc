@@ -8,7 +8,7 @@ publication:
     country: US
     region: [US-MN, US-WI, US-MI]
 
-models:
+model_sets:
   - name: cuvol
     type: fixed_effects_set
     response: { cuvol: "ft3" }

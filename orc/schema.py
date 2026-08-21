@@ -7,19 +7,29 @@ the current publication R files and the v4 sketch:
 publication: { key, bibtype, title, author, year, ... }
 models:
   - name: hstix50
-    type: fixed_effects          # or fixed_effects_set
+    type: fixed_effects
     response: { hstix50: "ft" }  # {name: units}
     covariates: { atb: "year" }  # {name: units-or-kind}
     parameters: { a: 22.6 }
     prediction_function: "4.5 + a * exp((b - c * log(atb)) * (hst - 4.5))"
+model_sets:
+  - name: cuvol
+    type: fixed_effects_set
+    response: { cuvol: "ft3" }
+    covariates: { dsob: "in" }
+    prediction_function: "b_1 + b_2 * dsob^2"
+    specifications:
+      - parameters: { b_1: 122.77 }
 ```
 
 Design choices encoded here:
 
 - ``extra="forbid"`` everywhere: this schema exists to *catch* typos and
   surprises, not to absorb them.
-- ``type`` discriminates the two structural kinds of model (inline parameters
-  vs. a parameterized set with a specifications table).
+- Top-level ``models`` and ``model_sets`` separate the two structural kinds:
+  individual models vs. parameterized families with a ``specifications``
+  table. ``type`` is required on every entry and is the extension point for
+  future kinds (only ``fixed_effects`` / ``fixed_effects_set`` are valid today).
 - ``response``/``covariates`` accept the compact ``{name: value}`` map form from
   the sketch and normalize to objects.
 - ``id`` is optional in source; when present it must already be a valid 8-char
@@ -29,7 +39,7 @@ Design choices encoded here:
 from __future__ import annotations
 
 import re
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -151,7 +161,7 @@ class ModelBase(BaseModel):
 
 
 class FixedEffectsModel(ModelBase):
-    type: Literal["fixed_effects"] = "fixed_effects"
+    type: Literal["fixed_effects"]
     parameters: dict[str, float]
 
 
@@ -168,7 +178,7 @@ class Specification(BaseModel):
 
 
 class FixedEffectsSetModel(ModelBase):
-    type: Literal["fixed_effects_set"] = "fixed_effects_set"
+    type: Literal["fixed_effects_set"]
     specifications: list[Specification]
 
     @model_validator(mode="after")
@@ -184,10 +194,7 @@ class FixedEffectsSetModel(ModelBase):
         return self
 
 
-Model = Annotated[
-    FixedEffectsModel | FixedEffectsSetModel,
-    Field(discriminator="type"),
-]
+Model = FixedEffectsModel | FixedEffectsSetModel
 
 
 class Publication(BaseModel):
@@ -217,7 +224,6 @@ class Publication(BaseModel):
     howpublished: str | None = None
     edition: str | None = None
     descriptors: dict[str, Scalar | list] | None = None
-    taxa: list[Taxon] | None = None
 
     @field_validator("year")
     @classmethod
@@ -228,16 +234,27 @@ class Publication(BaseModel):
 
 
 class ModelsFile(BaseModel):
-    """Top-level structure of a single publication YAML file."""
+    """Top-level structure of a single publication YAML file.
+
+    Individual models live under ``models``; parameterized families under
+    ``model_sets``. At least one of the two must be present.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     publication: Publication
-    models: list[Model] = Field(min_length=1)
+    models: list[FixedEffectsModel] = Field(default_factory=list)
+    model_sets: list[FixedEffectsSetModel] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _at_least_one_model_kind(self) -> ModelsFile:
+        if not self.models and not self.model_sets:
+            raise ValueError("at least one of models or model_sets is required")
+        return self
 
     @model_validator(mode="after")
     def _unique_model_names(self) -> ModelsFile:
-        names = [m.name for m in self.models]
+        names = [m.name for m in self.models] + [s.name for s in self.model_sets]
         dupes = {n for n in names if names.count(n) > 1}
         if dupes:
             raise ValueError(f"duplicate model names in file: {sorted(dupes)}")
