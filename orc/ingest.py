@@ -47,6 +47,7 @@ class IngestWarning:
 @dataclass
 class IngestResult:
     registry: list[RegistryRecord] = field(default_factory=list)
+    files: list[tuple[Path, ModelsFile]] = field(default_factory=list)
     errors: list[IngestError] = field(default_factory=list)
     warnings: list[IngestWarning] = field(default_factory=list)
 
@@ -95,6 +96,8 @@ def ingest(root: str | Path) -> IngestResult:
         except Exception as exc:  # noqa: BLE001 - surface every kind of failure
             result.errors.append(IngestError(path=path, message=str(exc)))
             continue
+
+        result.files.append((path, models_file))
 
         for model in models_file.models:
             _register_model(

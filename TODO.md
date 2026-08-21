@@ -12,10 +12,16 @@ source). The goal is a queryable, committed artifact that replaces the old
   `id` optional in source.
 - `ingest.py` — walks `publications/`, validates, assigns content-hash ids,
   flattens each model into a `RegistryRecord` (one per *model*), dumps JSONL.
+- `records.py` — canonical Layer-A records (`PublicationRecord`,
+  `ModelRecord`, `ModelSpecRecord`) with set→spec fallback resolution.
+- `writer.py` — flattens `ModelsFile`s and writes three parquet tables
+  (`publications`, `models`, `model_specs`) via DuckDB's parquet writer, with
+  explicit per-column type maps (null columns stay typed, empty tables yield
+  zero-row typed files).
 - `ids.py` — 8-char SHA-256 of canonical YAML dump; hash is per *model* (the
   whole set, not per spec).
-- `cli.py` — `orc ingest [path] [--registry out.jsonl]`.
-- Dependencies: `PyYAML`, `pydantic` only. No parquet/duckdb yet.
+- `cli.py` — `orc ingest [path] [--registry out.jsonl] [--parquet DIR]`.
+- Dependencies: `PyYAML`, `pydantic`, `duckdb` (writer only; no pyarrow).
 
 ## The three gaps (from storage.md)
 
