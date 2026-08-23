@@ -15,8 +15,9 @@ registry (one record per model) for downstream compilation to Arrow/Parquet.
 - **Identifies** each model by a content-addressed 8-character hex id derived
   from the model's own canonical serialization: stable across reordering and
   reformatting, and a dedupe signal for content-identical models.
-- **Emits** three flat parquet tables (`publications`, `models`,
-  `model_specs`) via DuckDB — no pyarrow dependency.
+- **Emits** six flat parquet tables (`publications`, `models`, `model_specs`,
+  `families`, `family_blobs`, `family_members`) via DuckDB — no pyarrow
+  dependency.
 
 ## Install
 
@@ -49,11 +50,12 @@ orc ingest path/to/a/single.yaml
 ```
 
 Exit code is `0` when every model validates, `1` if any errors are found.
-Add `--parquet dir` to also write the compiled records as three flat parquet
-tables — `publications`, `models`, and `model_specs` — joined on
-`pub_id` / `id` / `model_id`, using DuckDB as the writer (no pyarrow
-dependency). Null-only columns stay properly typed, and empty tables still
-produce a zero-row, correctly typed parquet file:
+Add `--parquet dir` to also write the compiled records as six flat parquet
+tables — `publications`, `models`, `model_specs`, and the family tables
+`families`, `family_blobs`, `family_members` — joined on
+`pub_id` / `id` / `model_id` / `family_id`, using DuckDB as the writer (no
+pyarrow dependency). Null-only columns stay properly typed, and empty tables
+still produce a zero-row, correctly typed parquet file:
 
 ```sh
 orc ingest --parquet out/

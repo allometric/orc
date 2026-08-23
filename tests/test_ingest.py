@@ -67,3 +67,51 @@ def test_single_file_ingest():
     result = ingest(PUBLICATIONS / "barnes_1962.yaml")
     assert result.ok
     assert len(result.registry) == 1
+
+
+def _family_yaml(family_id: str) -> dict:
+    return {
+        "family": {
+            "id": family_id,
+            "title": "Test family",
+            "description": "Test.",
+            "maintainers": [{"name": "Jane Doe"}],
+        },
+        "model_blobs": [
+            {
+                "id": "b1",
+                "response": "cuvol",
+                "covariates": ["dsob"],
+                "select": {"model_set_name": "cuvol"},
+            }
+        ],
+    }
+
+
+def test_ingest_family_file_collected(tmp_path):
+    path = tmp_path / "test_fam.yaml"
+    path.write_text(yaml.safe_dump(_family_yaml("test_fam"), sort_keys=False))
+    result = ingest(tmp_path)
+    assert result.ok, [e.render() for e in result.errors]
+    assert len(result.family_files) == 1
+    assert result.family_files[0][1].family.id == "test_fam"
+
+
+def test_family_id_must_match_filename_stem(tmp_path):
+    path = tmp_path / "other_name.yaml"
+    path.write_text(yaml.safe_dump(_family_yaml("test_fam"), sort_keys=False))
+    result = ingest(tmp_path)
+    assert not result.ok
+    assert any("filename stem" in e.message for e in result.errors)
+
+
+def test_duplicate_family_id_reported(tmp_path):
+    (tmp_path / "test_fam.yaml").write_text(
+        yaml.safe_dump(_family_yaml("test_fam"), sort_keys=False)
+    )
+    (tmp_path / "test_fam_dup.yaml").write_text(
+        yaml.safe_dump(_family_yaml("test_fam"), sort_keys=False)
+    )
+    result = ingest(tmp_path)
+    assert not result.ok
+    assert any("duplicate family id" in e.message for e in result.errors)

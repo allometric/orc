@@ -76,26 +76,12 @@ class RegistryRow:
         return {name for name, _ in self.covariates}
 
 
-def build_registry(root: str | Path) -> list[RegistryRow]:
-    """Build the flat registry from every publication YAML under ``root``.
-
-    Family YAML files (top-level ``family:`` key) and other non-publication
-    files are skipped; a publication file that fails schema validation is
-    skipped as well (``orc ingest`` is the authority for corpus validation).
-    """
+def build_registry_from_files(
+    files: list[tuple[Path, ModelsFile]],
+) -> list[RegistryRow]:
+    """Build the flat registry from already-validated publication files."""
     rows: list[RegistryRow] = []
-    for path in iter_yaml_files(root):
-        try:
-            raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-        except Exception:  # noqa: BLE001 - unparseable file, skip
-            continue
-        if not isinstance(raw, dict) or "family" in raw:
-            continue
-        try:
-            models_file = ModelsFile.model_validate(raw)
-        except Exception:  # noqa: BLE001 - not a valid publication, skip
-            continue
-
+    for path, models_file in files:
         _, model_records, spec_records = flatten(models_file, str(path))
         models_by_id = {m.id: m for m in model_records}
         for spec in spec_records:
@@ -117,6 +103,28 @@ def build_registry(root: str | Path) -> list[RegistryRow]:
                 )
             )
     return rows
+
+
+def build_registry(root: str | Path) -> list[RegistryRow]:
+    """Build the flat registry from every publication YAML under ``root``.
+
+    Family YAML files (top-level ``family:`` key) and other non-publication
+    files are skipped; a publication file that fails schema validation is
+    skipped as well (``orc ingest`` is the authority for corpus validation).
+    """
+    files: list[tuple[Path, ModelsFile]] = []
+    for path in iter_yaml_files(root):
+        try:
+            raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001 - unparseable file, skip
+            continue
+        if not isinstance(raw, dict) or "family" in raw:
+            continue
+        try:
+            files.append((Path(path), ModelsFile.model_validate(raw)))
+        except Exception:  # noqa: BLE001 - not a valid publication, skip
+            continue
+    return build_registry_from_files(files)
 
 
 def _taxa_match(row_taxa: list[Taxon] | None, select: Taxon) -> bool:

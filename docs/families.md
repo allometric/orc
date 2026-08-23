@@ -177,12 +177,12 @@ Implemented in `orc.families` (schema level):
 | `model_id` matches `[0-9a-f]{8}`                  | `FamilySelect._valid_model_id`    |
 | `taxa` has at least one level                    | reused `Taxon` validation         |
 
-Planned (ingest layer, sees all files at once):
+Implemented in `orc.ingest` (sees all files at once):
 
-| Rule                                              | When                              |
+| Rule                                              | Enforced by                       |
 |---------------------------------------------------|-----------------------------------|
-| `family.id` globally unique                       | ingest                            |
-| `family.id` matches filename stem                 | ingest                            |
+| `family.id` globally unique                       | `orc.ingest`                      |
+| `family.id` matches filename stem                 | `orc.ingest`                      |
 
 ## Resolving a family
 
@@ -220,3 +220,10 @@ the blob's `response` *(name, units)* pair and the exact `covariates`
 violating its declared structure, is an error and the command exits `1`.
 Criteria are ANDed within a blob, and families are loose — blobs may declare
 different response/covariate structures with no cross-blob constraint.
+
+`orc ingest --parquet` runs the same resolution and **pins** the result: it
+writes the family metadata to `families.parquet`, the blobs (with flattened
+`select` criteria) to `family_blobs.parquet`, and one membership row per
+resolved model to `family_members.parquet`, joined back to `model_specs` on
+`model_id` / `spec_index`. This is the compiled membership artifact blobs
+resolve into; family YAML files themselves store no model content.

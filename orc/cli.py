@@ -18,6 +18,7 @@ from orc.writer import write_parquet
 def _print_result(result: IngestResult, files: int) -> None:
     print(f"files:   {files}")
     print(f"models:  {len(result.registry)}")
+    print(f"families: {len(result.family_files)}")
     for warn in result.warnings:
         print(f"warning: {warn.render()}")
     for err in result.errors:
@@ -29,7 +30,9 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     files = sum(1 for _ in iter_yaml_files(args.path))
     _print_result(result, files)
     if args.parquet:
-        counts = write_parquet(result.files, args.parquet)
+        counts = write_parquet(
+            result.files, args.parquet, family_files=result.family_files
+        )
         print("parquet:  " + ", ".join(f"{k}={v}" for k, v in counts.items()))
         print(f"          -> {args.parquet}/")
     return 0 if result.ok else 1

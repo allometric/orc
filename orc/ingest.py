@@ -3,9 +3,14 @@
 Pipeline per file:
 
 1. parse YAML
-2. validate against :class:`orc.schema.ModelsFile`
+2. validate against :class:`orc.schema.ModelsFile` (publications) or
+   :class:`orc.families.ModelFamily` (family files, top-level ``family:``)
 3. derive each model's 8-char content id (or cross-check one already in source)
 4. flatten to one :class:`RegistryRecord` per model
+
+Family files are validated and checked (id globally unique, id matches the
+filename stem) but not resolved here; ``orc resolve`` / the parquet writer
+perform resolution against the compiled registry.
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ from typing import Iterator
 
 import yaml
 
+from orc.families import ModelFamily
 from orc.ids import content_hash
 from orc.schema import Model, ModelsFile, RegistryRecord
 YAML_SUFFIXES = (".yaml", ".yml")
@@ -47,6 +53,7 @@ class IngestWarning:
 class IngestResult:
     registry: list[RegistryRecord] = field(default_factory=list)
     files: list[tuple[Path, ModelsFile]] = field(default_factory=list)
+    family_files: list[tuple[Path, ModelFamily]] = field(default_factory=list)
     errors: list[IngestError] = field(default_factory=list)
     warnings: list[IngestWarning] = field(default_factory=list)
 
@@ -88,10 +95,25 @@ def ingest(root: str | Path) -> IngestResult:
     """Ingest every YAML file under ``root`` into a validated registry."""
     result = IngestResult()
     seen_ids: dict[str, list[str]] = {}
+    seen_family_ids: dict[str, Path] = {}
 
     for path in iter_yaml_files(root):
         try:
-            models_file = load_models_file(path)
+            with path.open("r", encoding="utf-8") as fh:
+                raw = yaml.safe_load(fh)
+        except Exception as exc:  # noqa: BLE001 - surface every kind of failure
+            result.errors.append(IngestError(path=path, message=str(exc)))
+            continue
+        if not isinstance(raw, dict):
+            result.errors.append(IngestError(path=path, message="top level must be a mapping"))
+            continue
+
+        if "family" in raw:
+            _register_family(result, raw, path, seen_family_ids)
+            continue
+
+        try:
+            models_file = ModelsFile.model_validate(raw)
         except Exception as exc:  # noqa: BLE001 - surface every kind of failure
             result.errors.append(IngestError(path=path, message=str(exc)))
             continue
@@ -121,6 +143,43 @@ def ingest(root: str | Path) -> IngestResult:
             )
 
     return result
+
+
+def _register_family(
+    result: IngestResult,
+    raw: dict,
+    path: Path,
+    seen_family_ids: dict[str, Path],
+) -> None:
+    """Validate one family file and enforce id uniqueness + filename stem."""
+    try:
+        family = ModelFamily.model_validate(raw)
+    except Exception as exc:  # noqa: BLE001 - surface every kind of failure
+        result.errors.append(IngestError(path=path, message=str(exc)))
+        return
+
+    if path.stem != family.family.id:
+        result.errors.append(
+            IngestError(
+                path=path,
+                message=(
+                    f"family id {family.family.id!r} does not match "
+                    f"filename stem {path.stem!r}"
+                ),
+            )
+        )
+    if family.family.id in seen_family_ids:
+        result.errors.append(
+            IngestError(
+                path=path,
+                message=(
+                    f"duplicate family id {family.family.id!r} "
+                    f"(first seen in {seen_family_ids[family.family.id]})"
+                ),
+            )
+        )
+    seen_family_ids[family.family.id] = path
+    result.family_files.append((path, family))
 
 
 def _register_model(

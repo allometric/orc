@@ -20,6 +20,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from orc.families import Maintainer, ModelFamily
 from orc.ingest import model_id
 from orc.schema import (
     Covariate,
@@ -105,6 +106,49 @@ class ModelSpecRecord(BaseModel):
     region: list[str] | None = None
     component: str | None = None
     descriptors: dict[str, Scalar | list] | None = None
+
+
+class FamilyRecord(BaseModel):
+    """One row per model family (family-level metadata)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    title: str
+    description: str
+    maintainers: list[Maintainer]
+    descriptors: dict[str, Scalar | list] | None = None
+
+
+class FamilyBlobRecord(BaseModel):
+    """One row per blob: the selection rule, with select criteria flattened."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    family_id: str
+    blob_id: str
+    label: str | None = None
+    response: str
+    covariates: list[str]
+    select_pub_id: str | None = None
+    select_model_id: str | None = None
+    select_model_set_name: str | None = None
+    select_model_name: str | None = None
+    select_taxa: Taxon | None = None
+    select_region: list[str] | None = None
+    select_component: str | None = None
+    select_descriptors: dict[str, Scalar | list] | None = None
+
+
+class FamilyMemberRecord(BaseModel):
+    """One pinned membership row: blob -> resolved model/spec."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    family_id: str
+    blob_id: str
+    model_id: str
+    spec_index: int
 
 
 def build_publication_record(models_file: ModelsFile) -> PublicationRecord:
@@ -214,3 +258,40 @@ def flatten(models_file: ModelsFile, source_file: str) -> tuple[PublicationRecor
         model_records.append(build_model_record(models_file, model, source_file))
         spec_records.extend(build_spec_records(model, model_id_))
     return pub_record, model_records, spec_records
+
+
+def build_family_record(family: ModelFamily) -> FamilyRecord:
+    """One ``FamilyRecord`` from a validated family file."""
+    meta = family.family
+    return FamilyRecord(
+        id=meta.id,
+        title=meta.title,
+        description=meta.description,
+        maintainers=meta.maintainers,
+        descriptors=meta.descriptors,
+    )
+
+
+def build_family_blob_records(family: ModelFamily) -> list[FamilyBlobRecord]:
+    """One ``FamilyBlobRecord`` per blob, select criteria flattened."""
+    records: list[FamilyBlobRecord] = []
+    for b in family.model_blobs:
+        sel = b.select
+        records.append(
+            FamilyBlobRecord(
+                family_id=family.family.id,
+                blob_id=b.id,
+                label=b.label,
+                response=b.response,
+                covariates=b.covariates,
+                select_pub_id=sel.pub_id,
+                select_model_id=sel.model_id,
+                select_model_set_name=sel.model_set_name,
+                select_model_name=sel.model_name,
+                select_taxa=sel.taxa,
+                select_region=sel.region,
+                select_component=sel.component,
+                select_descriptors=sel.descriptors,
+            )
+        )
+    return records

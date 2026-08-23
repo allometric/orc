@@ -6,8 +6,9 @@ written with an explicit per-column type map, so null-only columns come out
 properly typed (not JSON) and empty tables still yield a zero-row, correctly
 typed parquet file.
 
-Consumers (R ``arrow``, DuckDB, polars, pandas, ...) read the three files
-directly and join on ``pub_id`` / ``id`` / ``model_id``.
+Consumers (R ``arrow``, DuckDB, polars, pandas, ...) read the six files
+directly and join on ``pub_id`` / ``id`` / ``model_id``; family membership
+joins on ``family_id`` / ``blob_id`` + ``model_id`` / ``spec_index``.
 """
 
 from __future__ import annotations
@@ -20,10 +21,18 @@ from typing import Iterable
 
 import duckdb
 
-from orc.records import flatten
+from orc.families import ModelFamily
+from orc.records import (
+    FamilyMemberRecord,
+    build_family_blob_records,
+    build_family_record,
+    flatten,
+)
+from orc.resolve import build_registry_from_files, resolve
 from orc.schema import ModelsFile
 
 _TAXA = "STRUCT(family VARCHAR, genus VARCHAR, species VARCHAR)[]"
+_TAXA_SINGLE = "STRUCT(family VARCHAR, genus VARCHAR, species VARCHAR)"
 _JSON = "JSON"
 
 PUBLICATIONS_COLUMNS: dict[str, str] = {
@@ -82,10 +91,44 @@ MODEL_SPECS_COLUMNS: dict[str, str] = {
     "descriptors": _JSON,
 }
 
+FAMILIES_COLUMNS: dict[str, str] = {
+    "id": "VARCHAR",
+    "title": "VARCHAR",
+    "description": "VARCHAR",
+    "maintainers": _JSON,
+    "descriptors": _JSON,
+}
+
+FAMILY_BLOBS_COLUMNS: dict[str, str] = {
+    "family_id": "VARCHAR",
+    "blob_id": "VARCHAR",
+    "label": "VARCHAR",
+    "response": "VARCHAR",
+    "covariates": "VARCHAR[]",
+    "select_pub_id": "VARCHAR",
+    "select_model_id": "VARCHAR",
+    "select_model_set_name": "VARCHAR",
+    "select_model_name": "VARCHAR",
+    "select_taxa": _TAXA_SINGLE,
+    "select_region": "VARCHAR[]",
+    "select_component": "VARCHAR",
+    "select_descriptors": _JSON,
+}
+
+FAMILY_MEMBERS_COLUMNS: dict[str, str] = {
+    "family_id": "VARCHAR",
+    "blob_id": "VARCHAR",
+    "model_id": "VARCHAR",
+    "spec_index": "BIGINT",
+}
+
 _TABLES: list[tuple[str, dict[str, str]]] = [
     ("publications", PUBLICATIONS_COLUMNS),
     ("models", MODELS_COLUMNS),
     ("model_specs", MODEL_SPECS_COLUMNS),
+    ("families", FAMILIES_COLUMNS),
+    ("family_blobs", FAMILY_BLOBS_COLUMNS),
+    ("family_members", FAMILY_MEMBERS_COLUMNS),
 ]
 
 
@@ -117,8 +160,13 @@ def _write_table(
 def write_parquet(
     files: Iterable[tuple[Path, ModelsFile]],
     out_dir: str | Path,
+    family_files: Iterable[tuple[Path, "ModelFamily"]] | None = None,
 ) -> dict[str, int]:
-    """Flatten every validated ``ModelsFile`` and write three parquet tables.
+    """Flatten every validated ``ModelsFile`` and write six parquet tables.
+
+    ``family_files`` are validated ``ModelFamily`` files; their blobs are
+    resolved against the compiled registry and the pinned membership is
+    written to ``family_members.parquet``.
 
     Returns a dict of table name -> row count written.
     """
@@ -137,10 +185,37 @@ def write_parquet(
         models.extend(mods)
         model_specs.extend(specs)
 
+    families: list = []
+    family_blobs: list = []
+    family_members: list = []
+    family_files = list(family_files or [])
+    if family_files:
+        registry = build_registry_from_files(list(files))
+        for _, family in family_files:
+            families.append(build_family_record(family))
+            family_blobs.extend(build_family_blob_records(family))
+            resolved = resolve(family, registry)
+            for blob_result in resolved.blobs:
+                for row in blob_result.matched:
+                    family_members.append(
+                        FamilyMemberRecord(
+                            family_id=family.family.id,
+                            blob_id=blob_result.blob.id,
+                            model_id=row.model_id,
+                            spec_index=row.spec_index,
+                        )
+                    )
+
+    rows = {
+        "publications": publications,
+        "models": models,
+        "model_specs": model_specs,
+        "families": families,
+        "family_blobs": family_blobs,
+        "family_members": family_members,
+    }
     with duckdb.connect() as con:
         return {
-            table: _write_table(con, table, columns, rows, out_dir)
-            for (table, columns), rows in zip(
-                _TABLES, (publications, models, model_specs)
-            )
+            table: _write_table(con, table, columns, rows[table], out_dir)
+            for table, columns in _TABLES
         }

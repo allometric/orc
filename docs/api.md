@@ -17,7 +17,7 @@ orc [--version] resolve FAMILY [registry]
 |--------------|------------------------------------------------------------|
 | `--version`  | print the installed version and exit                       |
 | `path`       | YAML file or directory to ingest (default: `.`)           |
-| `--parquet`  | write `publications`/`models`/`model_specs` parquet tables to this directory |
+| `--parquet`  | write `publications`/`models`/`model_specs`/`families`/`family_blobs`/`family_members` parquet tables to this directory |
 
 Exit code is `0` when every model validates, `1` if any errors are found.
 
@@ -60,12 +60,13 @@ Content-addressed id for one model, ignoring any `id` in source.
 
 ### `IngestResult`
 
-| Field      | Type                          | Meaning                                  |
-|------------|-------------------------------|------------------------------------------|
-| `registry` | `list[RegistryRecord]`        | one flat record per validated model      |
-| `files`    | `list[tuple[Path, ModelsFile]]` | successfully ingested files            |
-| `errors`   | `list[IngestError]`           | validation failures                      |
-| `warnings` | `list[IngestWarning]`         | non-fatal notices (e.g. duplicate models)|
+| Field          | Type                          | Meaning                                  |
+|----------------|-------------------------------|------------------------------------------|
+| `registry`     | `list[RegistryRecord]`        | one flat record per validated model      |
+| `files`        | `list[tuple[Path, ModelsFile]]` | successfully ingested publication files|
+| `family_files` | `list[tuple[Path, ModelFamily]]` | validated family files (top-level `family:`) |
+| `errors`       | `list[IngestError]`           | validation failures                      |
+| `warnings`     | `list[IngestWarning]`         | non-fatal notices (e.g. duplicate models)|
 
 Property `ok` is `True` iff `errors` is empty.
 
