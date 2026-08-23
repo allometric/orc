@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from orc import __version__
-from orc.ingest import IngestResult, ingest, iter_yaml_files, write_registry_jsonl
+from orc.ingest import IngestResult, ingest, iter_yaml_files
 from orc.writer import write_parquet
 
 
@@ -24,9 +24,6 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     result = ingest(args.path)
     files = sum(1 for _ in iter_yaml_files(args.path))
     _print_result(result, files)
-    if args.registry:
-        write_registry_jsonl(result, args.registry)
-        print(f"registry: wrote {len(result.registry)} records -> {args.registry}")
     if args.parquet:
         counts = write_parquet(result.files, args.parquet)
         print("parquet:  " + ", ".join(f"{k}={v}" for k, v in counts.items()))
@@ -46,12 +43,6 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="?",
         default=Path("."),
         help="YAML file or directory to ingest (default: current directory)",
-    )
-    ingest_p.add_argument(
-        "--registry",
-        type=Path,
-        default=None,
-        help="write the compiled registry as JSONL to this path",
     )
     ingest_p.add_argument(
         "--parquet",

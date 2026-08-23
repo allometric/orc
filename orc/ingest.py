@@ -10,7 +10,6 @@ Pipeline per file:
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator
@@ -172,10 +171,3 @@ def _register_model(
     seen_ids.setdefault(computed, []).append(
         f"{models_file.publication.key}/{model.name}"
     )
-
-
-def write_registry_jsonl(result: IngestResult, out: str | Path) -> None:
-    """Dump the registry as newline-delimited JSON (a cheap Parquet precursor)."""
-    with open(out, "w", encoding="utf-8") as fh:
-        for record in result.registry:
-            fh.write(json.dumps(record.model_dump(), ensure_ascii=False) + "\n")

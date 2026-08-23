@@ -7,14 +7,13 @@ Everything else (`orc.cli`, `orc.writer`) is internal.
 ## CLI
 
 ```
-orc [--version] ingest [path] [--registry OUT.jsonl] [--parquet DIR]
+orc [--version] ingest [path] [--parquet DIR]
 ```
 
 | Flag         | Meaning                                                    |
 |--------------|------------------------------------------------------------|
 | `--version`  | print the installed version and exit                       |
 | `path`       | YAML file or directory to ingest (default: `.`)           |
-| `--registry` | write the compiled registry as JSONL to this path          |
 | `--parquet`  | write `publications`/`models`/`model_specs` parquet tables to this directory |
 
 Exit code is `0` when every model validates, `1` if any errors are found.
@@ -45,10 +44,6 @@ not a mapping.
 ### `model_id(model: Model) -> str`
 
 Content-addressed id for one model, ignoring any `id` in source.
-
-### `write_registry_jsonl(result: IngestResult, out: str | Path) -> None`
-
-Dump the registry as newline-delimited JSON (one `RegistryRecord` per line).
 
 ### `IngestResult`
 

@@ -27,7 +27,7 @@ echo "== step 2/3: JSON -> v4 YAML =="
 "$REPO_ROOT/.venv/bin/python" "$REPO_ROOT/scripts/convert.py" "$HARVEST_DIR" "$OUT_DIR"
 
 echo "== step 3/3: orc ingest validates the corpus =="
-"$REPO_ROOT/.venv/bin/orc" ingest "$OUT_DIR" --registry "$OUT_DIR/registry.jsonl" \
+"$REPO_ROOT/.venv/bin/orc" ingest "$OUT_DIR" \
   || { echo "migration produced invalid YAML"; exit 1; }
 
 echo "done. YAML corpus: $OUT_DIR"

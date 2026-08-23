@@ -15,8 +15,8 @@ registry (one record per model) for downstream compilation to Arrow/Parquet.
 - **Identifies** each model by a content-addressed 8-character hex id derived
   from the model's own canonical serialization: stable across reordering and
   reformatting, and a dedupe signal for content-identical models.
-- **Emits** a flat registry (JSONL) and, optionally, three parquet tables
-  (`publications`, `models`, `model_specs`) via DuckDB — no pyarrow dependency.
+- **Emits** three flat parquet tables (`publications`, `models`,
+  `model_specs`) via DuckDB — no pyarrow dependency.
 
 ## Install
 
@@ -49,13 +49,6 @@ orc ingest path/to/a/single.yaml
 ```
 
 Exit code is `0` when every model validates, `1` if any errors are found.
-Add `--registry out.jsonl` to also emit the compiled flat registry (one
-JSON record per model) for downstream use:
-
-```sh
-orc ingest --registry registry.jsonl
-```
-
 Add `--parquet dir` to also write the compiled records as three flat parquet
 tables — `publications`, `models`, and `model_specs` — joined on
 `pub_id` / `id` / `model_id`, using DuckDB as the writer (no pyarrow

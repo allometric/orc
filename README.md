@@ -37,13 +37,6 @@ orc ingest path/to/a/single.yaml
 ```
 
 Exit code is `0` when every model validates, `1` if any errors are found.
-Add `--registry out.jsonl` to also emit the compiled flat registry (one
-JSON record per model) for downstream use:
-
-```sh
-orc ingest --registry registry.jsonl
-```
-
 Add `--parquet dir` to also write the compiled records as three flat parquet
 tables — `publications`, `models`, and `model_specs` — joined on
 `pub_id` / `id` / `model_id`, using DuckDB as the writer (no pyarrow

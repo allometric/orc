@@ -20,7 +20,7 @@ source). The goal is a queryable, committed artifact that replaces the old
   zero-row typed files).
 - `ids.py` — 8-char SHA-256 of canonical YAML dump; hash is per *model* (the
   whole set, not per spec).
-- `cli.py` — `orc ingest [path] [--registry out.jsonl] [--parquet DIR]`.
+- `cli.py` — `orc ingest [path] [--parquet DIR]`.
 - Dependencies: `PyYAML`, `pydantic`, `duckdb` (writer only; no pyarrow).
 
 ## The three gaps (from storage.md)
@@ -60,9 +60,9 @@ disambiguate rows within a set.
 ### 2. Extend `orc/ingest.py`
 
 Build the three record lists from a validated `ModelsFile`/registry, in
-addition to (or replacing) the current lossy `RegistryRecord` path. Decide
-whether `RegistryRecord` / `write_registry_jsonl` stays or is superseded —
-keep it only if still useful for debugging.
+addition to (or replacing) the current lossy `RegistryRecord` path. The JSONL
+registry writer (`--registry` / `write_registry_jsonl`) has been removed;
+`RegistryRecord` remains as the in-memory registry until this supersedes it.
 
 ### 3. `orc/parquet.py` (new) — writer
 

@@ -80,6 +80,6 @@ mismatch. When absent, `ingest` derives and assigns the hash.
 
 ### In the registry
 
-The compiled registry (`--registry` / parquet) carries the derived id per
-record as `id`, plus `pub_id` (the publication `key`) and `model_name`; parquet
-tables join on `pub_id` / `id` / `model_id`.
+The compiled parquet tables carry the derived id per record as `id`, plus
+`pub_id` (the publication `key`) and `model_name`; they join on `pub_id` /
+`id` / `model_id`.
