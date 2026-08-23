@@ -18,6 +18,7 @@ family:
     A curated family that groups the models published by Doe (2024): the
     western hemlock site index equation and the per-species stem volume
     equations. Each blob resolves to models in the `doe_2024` publication.
+  pub_id: doe_2024
   maintainers:
     - name: "Jane Doe"
       email: jane.doe@example.com
@@ -75,7 +76,15 @@ of the family.
 | `title`        | string              | yes      | short human label                                 |
 | `description`  | string              | yes      | non-empty; ~1 paragraph of context/applicability  |
 | `maintainers`  | list of maintainer  | yes      | at least one; the family's curators               |
+| `pub_id`       | string              | no       | publication this family is curated from, if any   |
 | `descriptors`  | map                 | no       | free-form key/value metadata                      |
+
+`pub_id` links a family to the publication it is curated from — the case where
+a publication behaves like a family (a paper's curated set of models, e.g.
+`doe_2024_growth_yield` above). It is provenance metadata only: it does *not*
+constrain resolution, so blobs still select independently via `select.pub_id`.
+It is written to `families.parquet` and joins to `publications.parquet` on
+`pub_id`.
 
 ### `maintainer`
 

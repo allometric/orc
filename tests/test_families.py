@@ -261,3 +261,15 @@ def test_descriptors_accepted():
     data["family"]["descriptors"] = {"country": "US", "tags": ["volume"]}
     parsed = ModelFamily.model_validate(data)
     assert parsed.family.descriptors["country"] == "US"
+
+
+def test_pub_id_optional():
+    parsed = ModelFamily.model_validate(_valid())
+    assert parsed.family.pub_id is None
+
+
+def test_pub_id_accepted():
+    data = _valid()
+    data["family"]["pub_id"] = "hahn_1991"
+    parsed = ModelFamily.model_validate(data)
+    assert parsed.family.pub_id == "hahn_1991"

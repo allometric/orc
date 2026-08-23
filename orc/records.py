@@ -117,6 +117,7 @@ class FamilyRecord(BaseModel):
     title: str
     description: str
     maintainers: list[Maintainer]
+    pub_id: str | None = None
     descriptors: dict[str, Scalar | list] | None = None
 
 
@@ -268,6 +269,7 @@ def build_family_record(family: ModelFamily) -> FamilyRecord:
         title=meta.title,
         description=meta.description,
         maintainers=meta.maintainers,
+        pub_id=meta.pub_id,
         descriptors=meta.descriptors,
     )
 
