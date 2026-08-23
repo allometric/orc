@@ -12,26 +12,34 @@ family:
     the US North Central region. Each model in this family corresponds to a
     single species; all predict total stem volume in ft3 from diameter at
     breast height in inches.
+  maintainers:
+    - name: "Jane Doe"
+      email: jane.doe@example.com
+      institution: "University of Washington"
+      role: [aut, cre]
   descriptors:
     country: US
     region: [US-MN, US-WI, US-MI]
 
 model_blobs:
-  - label: "Red pine (Pinus resinosa)"
+  - id: red_pine_stem_volume
+    label: "Red pine (Pinus resinosa)"
     response: cuvol
     covariates: [dsob]
     select:
       taxa:
         genus: Pinus
         species: resinosa
-  - label: "Jack pine (Pinus banksiana)"
+  - id: jack_pine_stem_volume
+    label: "Jack pine (Pinus banksiana)"
     response: cuvol
     covariates: [dsob]
     select:
       taxa:
         genus: Pinus
         species: banksiana
-  - label: "Sugar maple (Acer saccharum)"
+  - id: sugar_maple_stem_volume
+    label: "Sugar maple (Acer saccharum)"
     response: cuvol
     covariates: [dsob]
     select:

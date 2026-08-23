@@ -8,7 +8,10 @@ Everything else (`orc.cli`, `orc.writer`) is internal.
 
 ```
 orc [--version] ingest [path] [--parquet DIR]
+orc [--version] resolve FAMILY [registry]
 ```
+
+`ingest`:
 
 | Flag         | Meaning                                                    |
 |--------------|------------------------------------------------------------|
@@ -17,6 +20,16 @@ orc [--version] ingest [path] [--parquet DIR]
 | `--parquet`  | write `publications`/`models`/`model_specs` parquet tables to this directory |
 
 Exit code is `0` when every model validates, `1` if any errors are found.
+
+`resolve`:
+
+| Argument  | Meaning                                                              |
+|-----------|----------------------------------------------------------------------|
+| `FAMILY`  | model family YAML file to resolve                                    |
+| `registry`| publication YAML file/directory to build the registry from (default: `.`) |
+
+Exit code is `0` when every blob resolves to ≥1 model and satisfies its
+invariants, `1` otherwise.
 
 ## `orc.ingest`
 
@@ -82,6 +95,24 @@ Pydantic v2 models. All use `extra="forbid"`.
 `model_type`, `response`, `covariates`, `parameters`, `prediction_function`,
 `parameter_names`, `taxa`, `region`, `component`, `covt_defs`,
 `response_definition`, `description`, `descriptors`, `source_file`.
+
+## `orc.resolve`
+
+Resolves model family blobs against the compiled registry (see
+[Families](families.md#resolving-a-family)).
+
+| Function                       | Purpose                                                              |
+|--------------------------------|----------------------------------------------------------------------|
+| `build_registry(root) -> list[RegistryRow]` | build the flat model/spec registry from publication YAMLs under `root` |
+| `resolve(family, registry) -> ResolveResult` | run every blob's `select` against the registry and enforce per-blob invariants |
+| `ResolveResult`                | `.blobs` (`list[BlobResult]`), `.errors`, `.ok`                      |
+| `BlobResult`                   | `.blob`, `.matched` (`list[RegistryRow]`), `.errors`, `.ok`          |
+| `RegistryRow`                  | one model/spec row; `.identity()` gives a human label                |
+
+Selection semantics: criteria are ANDed within a blob; `select.taxa` matches a
+row if any of its taxon entries satisfies all specified levels. Per-blob
+invariants require every resolved row to share the blob's `response`
+*(name, units)* pair and the exact `covariates` *(name, units-or-kind)* set.
 
 ## `orc.ids`
 

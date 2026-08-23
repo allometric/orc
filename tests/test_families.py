@@ -14,9 +14,11 @@ def _valid() -> dict:
             "id": "north_central_stem_volume",
             "title": "Stem volume equations for North Central US tree species",
             "description": "Curated volume equations for North Central US species.",
+            "maintainers": [{"name": "Jane Doe", "email": "jane.doe@example.com"}],
         },
         "model_blobs": [
             {
+                "id": "red_pine_stem_volume",
                 "label": "Red pine (Pinus resinosa)",
                 "response": "cuvol",
                 "covariates": ["dsob"],
@@ -35,6 +37,11 @@ def test_valid_example_loads():
     data = yaml.safe_load((FAMILIES / "north_central_stem_volume.yaml").read_text())
     parsed = ModelFamily.model_validate(data)
     assert parsed.family.id == "north_central_stem_volume"
+    assert [b.id for b in parsed.model_blobs] == [
+        "red_pine_stem_volume",
+        "jack_pine_stem_volume",
+        "sugar_maple_stem_volume",
+    ]
     assert [b.label for b in parsed.model_blobs] == [
         "Red pine (Pinus resinosa)",
         "Jack pine (Pinus banksiana)",
@@ -47,6 +54,7 @@ def test_valid_example_loads():
 def test_valid_family_parses():
     parsed = ModelFamily.model_validate(_valid())
     assert parsed.family.id == "north_central_stem_volume"
+    assert parsed.model_blobs[0].id == "red_pine_stem_volume"
     assert parsed.model_blobs[0].response == "cuvol"
     assert parsed.model_blobs[0].covariates == ["dsob"]
     assert parsed.model_blobs[0].select.taxa.species == "resinosa"
@@ -86,6 +94,7 @@ def test_blobs_may_differ_in_structure():
     data = _valid()
     data["model_blobs"].append(
         {
+            "id": "red_pine_biomass",
             "label": "Red pine biomass",
             "response": "mass",
             "covariates": ["dbh"],
@@ -164,6 +173,87 @@ def test_label_optional():
     del data["model_blobs"][0]["label"]
     parsed = ModelFamily.model_validate(data)
     assert parsed.model_blobs[0].label is None
+
+
+def test_missing_blob_id_rejected():
+    data = _valid()
+    del data["model_blobs"][0]["id"]
+    with pytest.raises(ValidationError):
+        ModelFamily.model_validate(data)
+
+
+def test_invalid_blob_id_rejected():
+    data = _valid()
+    data["model_blobs"][0]["id"] = "Red Pine Stem Volume"
+    with pytest.raises(ValidationError):
+        ModelFamily.model_validate(data)
+
+
+def test_duplicate_blob_ids_rejected():
+    data = _valid()
+    data["model_blobs"].append(dict(data["model_blobs"][0]))
+    with pytest.raises(ValidationError):
+        ModelFamily.model_validate(data)
+
+
+def test_missing_maintainers_rejected():
+    data = _valid()
+    del data["family"]["maintainers"]
+    with pytest.raises(ValidationError):
+        ModelFamily.model_validate(data)
+
+
+def test_empty_maintainers_rejected():
+    data = _valid()
+    data["family"]["maintainers"] = []
+    with pytest.raises(ValidationError):
+        ModelFamily.model_validate(data)
+
+
+def test_maintainer_requires_name():
+    data = _valid()
+    data["family"]["maintainers"] = [{"email": "jane.doe@example.com"}]
+    with pytest.raises(ValidationError):
+        ModelFamily.model_validate(data)
+
+
+def test_maintainer_contact_optional():
+    data = _valid()
+    data["family"]["maintainers"] = [{"name": "Jane Doe"}]
+    parsed = ModelFamily.model_validate(data)
+    assert parsed.family.maintainers[0].email is None
+
+
+def test_unknown_maintainer_key_rejected():
+    data = _valid()
+    data["family"]["maintainers"] = [{"name": "Jane Doe", "bogus": 1}]
+    with pytest.raises(ValidationError):
+        ModelFamily.model_validate(data)
+
+
+def test_maintainer_institution_and_role_accepted():
+    data = _valid()
+    data["family"]["maintainers"] = [
+        {"name": "Jane Doe", "institution": "Univ. of Washington", "role": ["aut", "cre"]}
+    ]
+    parsed = ModelFamily.model_validate(data)
+    m = parsed.family.maintainers[0]
+    assert m.institution == "Univ. of Washington"
+    assert m.role == ["aut", "cre"]
+
+
+def test_maintainer_role_accepts_single_string():
+    data = _valid()
+    data["family"]["maintainers"] = [{"name": "Jane Doe", "role": "cre"}]
+    parsed = ModelFamily.model_validate(data)
+    assert parsed.family.maintainers[0].role == "cre"
+
+
+def test_maintainer_unknown_role_rejected():
+    data = _valid()
+    data["family"]["maintainers"] = [{"name": "Jane Doe", "role": "boss"}]
+    with pytest.raises(ValidationError):
+        ModelFamily.model_validate(data)
 
 
 def test_descriptors_accepted():

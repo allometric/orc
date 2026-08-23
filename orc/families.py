@@ -63,6 +63,8 @@ class FamilySelect(BaseModel):
 class ModelBlob(BaseModel):
     """One selection rule; resolves to the models matching ``select``.
 
+    ``id`` is the blob's short name, leading the blob definition and unique
+    within the family; ``label`` is an optional human-readable provenance.
     ``response`` and ``covariates`` are declared here as bare names. The
     resolution layer later checks that every model this blob resolves to
     agrees on the full (name, units) pair for the response and on the exact
@@ -71,10 +73,39 @@ class ModelBlob(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    id: str = Field(pattern=r"^[a-z][a-z0-9_]*$")
     label: str | None = None
     response: str = Field(min_length=1)
     covariates: list[str]
     select: FamilySelect
+
+
+_CRAN_ROLES = {"aut", "cre", "ctb", "cph", "fnd", "rev", "ths", "trc"}
+
+
+class Maintainer(BaseModel):
+    """One family maintainer.
+
+    Families are maintained by users of the ``allometric`` ecosystem, and
+    authorship is tracked in the manner of R packages / CRAN: a required
+    ``name`` plus optional contact, affiliation, and role metadata.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    email: str | None = None
+    orcid: str | None = None
+    institution: str | None = None
+    role: str | list[str] | None = None
+
+    @model_validator(mode="after")
+    def _valid_roles(self) -> Maintainer:
+        roles = [self.role] if isinstance(self.role, str) else (self.role or [])
+        bad = [r for r in roles if r not in _CRAN_ROLES]
+        if bad:
+            raise ValueError(f"unknown CRAN role(s): {bad}")
+        return self
 
 
 class FamilyMeta(BaseModel):
@@ -90,6 +121,7 @@ class FamilyMeta(BaseModel):
     id: str = Field(min_length=1)
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
+    maintainers: list[Maintainer] = Field(min_length=1)
     descriptors: dict[str, Scalar | list] | None = None
 
 
@@ -105,3 +137,10 @@ class ModelFamily(BaseModel):
 
     family: FamilyMeta
     model_blobs: list[ModelBlob] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _unique_blob_ids(self) -> ModelFamily:
+        ids = [b.id for b in self.model_blobs]
+        if len(ids) != len(set(ids)):
+            raise ValueError(f"model blob ids must be unique within a family: {ids}")
+        return self
