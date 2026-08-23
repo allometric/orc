@@ -23,9 +23,10 @@ theme:
         name: Switch to light mode
 nav:
   - Home: index.md
-  - Schema: schema.md
+  - Schema:
+      - Publication: publication.md
+      - Model Families: families.md
   - Model kinds: kinds.md
-  - Families: families.md
   - API: api.md
 markdown_extensions:
   - admonition

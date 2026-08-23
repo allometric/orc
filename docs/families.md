@@ -97,7 +97,7 @@ required `select` (which models to consider).
 
 `response` / `covariates` are declared as bare names; resolution checks that
 every model the blob resolves to agrees on the full (name, units) pairs — see
-[Invariants](#invariants).
+[Invariants](#invariants-per-blob).
 
 ### `select` criteria
 

@@ -1,4 +1,4 @@
-# Schema
+# Publication
 
 Every publication is a single YAML file with `publication` (BibTeX metadata)
 plus one or both of `models` (individual models) and `model_sets`

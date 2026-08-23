@@ -64,7 +64,7 @@ do not fail the run.
 
 ## Documentation
 
-- [Schema](schema.md) — the YAML file format, field by field
+- [Publication](publication.md) — the YAML file format, field by field
 - [Model kinds](kinds.md) — `fixed_effects` vs `fixed_effects_set`, taxa, identifiers
-- [Families](families.md) — curated model families, blobs, and invariants
+- [Model Families](families.md) — curated model families, blobs, and invariants
 - [API](api.md) — the `orc.ingest` entry points and CLI reference
