@@ -69,6 +69,20 @@ def test_single_file_ingest():
     assert len(result.registry) == 1
 
 
+def test_hidden_directories_skipped(tmp_path):
+    # a workflow yaml under .github must not be parsed as a models file
+    hidden = tmp_path / ".github" / "workflows"
+    hidden.mkdir(parents=True)
+    (hidden / "build.yaml").write_text("name: build\non: push\njobs: {}\n")
+    # corpus file still ingested
+    data = yaml.safe_load((PUBLICATIONS / "barnes_1962.yaml").read_text())
+    (tmp_path / "barnes_1962.yaml").write_text(yaml.safe_dump(data, sort_keys=False))
+
+    result = ingest(tmp_path)
+    assert result.ok, [e.render() for e in result.errors]
+    assert {r.pub_id for r in result.registry} == {"barnes_1962"}
+
+
 def _family_yaml(family_id: str) -> dict:
     return {
         "family": {

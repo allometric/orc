@@ -63,14 +63,21 @@ class IngestResult:
 
 
 def iter_yaml_files(root: str | Path) -> Iterator[Path]:
-    """Yield candidate YAML files under ``root``, in stable order."""
+    """Yield candidate YAML files under ``root``, in stable order.
+
+    Hidden directories (any path component starting with ``.``) are skipped,
+    so ``.git/``, ``.venv/`` and ``.github/`` never get parsed as corpus files.
+    """
     path = Path(root)
     if path.is_file():
         yield path
         return
     for p in sorted(path.rglob("*")):
-        if p.is_file() and p.suffix.lower() in YAML_SUFFIXES:
-            yield p
+        if not p.is_file() or p.suffix.lower() not in YAML_SUFFIXES:
+            continue
+        if any(part.startswith(".") for part in p.relative_to(path).parts):
+            continue
+        yield p
 
 
 def load_models_file(path: Path) -> ModelsFile:
