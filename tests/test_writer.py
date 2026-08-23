@@ -4,7 +4,6 @@ import shutil
 import duckdb
 import yaml
 
-from orc.families import ModelFamily
 from orc.ingest import ingest
 from orc.schema import ModelsFile
 from orc.writer import write_parquet
@@ -171,41 +170,6 @@ def test_family_blobs_columns_typed(tmp_path):
     assert dtypes["covariates"] == "VARCHAR[]"
     assert dtypes["select_taxa"].startswith("STRUCT(")
     assert dtypes["select_descriptors"] == "JSON"
-
-
-def test_family_pub_id_roundtrip(tmp_path):
-    out = tmp_path / "registry"
-    files = []
-    for name in ("barnes_1962.yaml", "hahn_1991.yaml"):
-        mf = ModelsFile.model_validate(
-            yaml.safe_load((PUBLICATIONS / name).read_text())
-        )
-        files.append((PUBLICATIONS / name, mf))
-    family = ModelFamily.model_validate(
-        {
-            "family": {
-                "id": "test_family",
-                "title": "Test family",
-                "description": "Curated set from a single publication.",
-                "maintainers": [{"name": "Jane Doe"}],
-                "pub_id": "hahn_1991",
-            },
-            "model_blobs": [
-                {
-                    "id": "vol",
-                    "response": "cuvol",
-                    "covariates": ["dsob"],
-                    "select": {"pub_id": "hahn_1991"},
-                }
-            ],
-        }
-    )
-    write_parquet(files, out, family_files=[(Path("test_family.yaml"), family)])
-    con = duckdb.connect()
-    rows = con.execute(
-        f"SELECT id, pub_id FROM read_parquet('{out}/families.parquet')"
-    ).fetchall()
-    assert rows == [("test_family", "hahn_1991")]
 
 
 def test_family_select_roundtrip(tmp_path):

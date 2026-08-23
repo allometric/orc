@@ -114,12 +114,6 @@ class FamilyMeta(BaseModel):
     Response and covariate structure is deliberately *not* declared here —
     families are loose, and each blob carries its own ``response`` and
     ``covariates`` (see :class:`ModelBlob`).
-
-    ``pub_id`` optionally names the publication a family is curated from.
-    It is provenance metadata only: it does not constrain resolution (blobs
-    still select independently via ``FamilySelect.pub_id``), but it lets a
-    family that is essentially "the curated set from publication X" declare
-    that link explicitly and joinable in the compiled output.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -128,7 +122,6 @@ class FamilyMeta(BaseModel):
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
     maintainers: list[Maintainer] = Field(min_length=1)
-    pub_id: str | None = None
     descriptors: dict[str, Scalar | list] | None = None
 
 

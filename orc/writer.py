@@ -96,7 +96,6 @@ FAMILIES_COLUMNS: dict[str, str] = {
     "title": "VARCHAR",
     "description": "VARCHAR",
     "maintainers": _JSON,
-    "pub_id": "VARCHAR",
     "descriptors": _JSON,
 }
 
