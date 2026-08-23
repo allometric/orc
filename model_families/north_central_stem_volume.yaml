@@ -1,0 +1,40 @@
+# Model family: total stem volume equations for North Central US tree species.
+#
+# A family is a set of models — here, one volume equation per species —
+# curated from the compiled registry. Each blob declares the response and
+# covariate structure its members must share (families themselves are loose).
+
+family:
+  id: north_central_stem_volume
+  title: "Stem volume equations for North Central US tree species"
+  description: |
+    A curated set of published total stem volume equations for tree species of
+    the US North Central region. Each model in this family corresponds to a
+    single species; all predict total stem volume in ft3 from diameter at
+    breast height in inches.
+  descriptors:
+    country: US
+    region: [US-MN, US-WI, US-MI]
+
+model_blobs:
+  - label: "Red pine (Pinus resinosa)"
+    response: cuvol
+    covariates: [dsob]
+    select:
+      taxa:
+        genus: Pinus
+        species: resinosa
+  - label: "Jack pine (Pinus banksiana)"
+    response: cuvol
+    covariates: [dsob]
+    select:
+      taxa:
+        genus: Pinus
+        species: banksiana
+  - label: "Sugar maple (Acer saccharum)"
+    response: cuvol
+    covariates: [dsob]
+    select:
+      taxa:
+        genus: Acer
+        species: saccharum
