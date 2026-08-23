@@ -5,11 +5,11 @@ import yaml
 from orc.records import flatten
 from orc.schema import ModelsFile
 
-EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
+PUBLICATIONS = Path(__file__).resolve().parent.parent / "publications"
 
 
 def _load(name: str) -> ModelsFile:
-    text = (EXAMPLES / name).read_text()
+    text = (PUBLICATIONS / name).read_text()
     return ModelsFile.model_validate(yaml.safe_load(text))
 
 

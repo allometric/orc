@@ -5,19 +5,19 @@ from pydantic import ValidationError
 
 from orc.schema import ModelsFile
 
-EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
+PUBLICATIONS = Path(__file__).resolve().parent.parent / "publications"
 
 
 @pytest.fixture
 def barnes_text() -> str:
-    return (EXAMPLES / "barnes_1962.yaml").read_text()
+    return (PUBLICATIONS / "barnes_1962.yaml").read_text()
 
 
 def test_valid_examples_load():
     import yaml
 
     for name in ("barnes_1962.yaml", "hahn_1991.yaml"):
-        ModelsFile.model_validate(yaml.safe_load((EXAMPLES / name).read_text()))
+        ModelsFile.model_validate(yaml.safe_load((PUBLICATIONS / name).read_text()))
 
 
 def test_missing_required_field(barnes_text):

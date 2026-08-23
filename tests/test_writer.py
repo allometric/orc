@@ -7,16 +7,16 @@ from orc.ingest import ingest
 from orc.schema import ModelsFile
 from orc.writer import write_parquet
 
-EXAMPLES = Path(__file__).resolve().parent.parent / "examples"
+PUBLICATIONS = Path(__file__).resolve().parent.parent / "publications"
 
 
 def _write(tmp_path: Path) -> dict[str, int]:
     files = []
     for name in ("barnes_1962.yaml", "hahn_1991.yaml"):
         mf = ModelsFile.model_validate(
-            yaml.safe_load((EXAMPLES / name).read_text())
+            yaml.safe_load((PUBLICATIONS / name).read_text())
         )
-        files.append((EXAMPLES / name, mf))
+        files.append((PUBLICATIONS / name, mf))
     return write_parquet(files, tmp_path)
 
 
@@ -89,7 +89,7 @@ def test_empty_input_writes_zero_row_typed_parquet(tmp_path):
 
 def test_ingest_then_write_parquet(tmp_path):
     out = tmp_path / "registry"
-    result = ingest(EXAMPLES)
+    result = ingest(PUBLICATIONS)
     assert result.ok
     counts = write_parquet(result.files, out)
     assert counts["models"] == 2

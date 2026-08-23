@@ -58,7 +58,7 @@ model_sets:
 ```
 
 A complete worked example lives in
-[`examples/hahn_1991.yaml`](https://github.com/allometric/orc/blob/main/examples/hahn_1991.yaml).
+[`publications/hahn_1991.yaml`](https://github.com/allometric/orc/blob/main/publications/hahn_1991.yaml).
 
 ## Top-level rules
 

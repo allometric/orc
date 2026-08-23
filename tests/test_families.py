@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from orc.families import ModelFamily
 
-EXAMPLES = Path(__file__).resolve().parent.parent / "model_families"
+FAMILIES = Path(__file__).resolve().parent.parent / "model_families"
 
 
 def _valid() -> dict:
@@ -32,7 +32,7 @@ def _valid() -> dict:
 def test_valid_example_loads():
     import yaml
 
-    data = yaml.safe_load((EXAMPLES / "north_central_stem_volume.yaml").read_text())
+    data = yaml.safe_load((FAMILIES / "north_central_stem_volume.yaml").read_text())
     parsed = ModelFamily.model_validate(data)
     assert parsed.family.id == "north_central_stem_volume"
     assert [b.label for b in parsed.model_blobs] == [
