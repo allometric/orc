@@ -124,7 +124,7 @@ every model the blob resolves to agrees on the full (name, units) pairs — see
 | Field            | Type                    | Notes                                |
 |------------------|-------------------------|--------------------------------------|
 | `pub_id`         | string                  | a specific publication key           |
-| `model_id`       | string                  | an 8-char content-hash id (`[0-9a-f]{8}`) |
+| `model_id`       | string                  | 8-char content-hash id (`[0-9a-f]{8}`) of a specific model — a spec row for sets, unique per model |
 | `model_set_name` | string                  | a specific named model set           |
 | `model_name`     | string                  | a specific named model               |
 | `taxa`           | `taxon` object          | partial filter; see below            |
@@ -225,5 +225,6 @@ different response/covariate structures with no cross-blob constraint.
 writes the family metadata to `families.parquet`, the blobs (with flattened
 `select` criteria) to `family_blobs.parquet`, and one membership row per
 resolved model to `family_members.parquet`, joined back to `model_specs` on
-`model_id` / `spec_index`. This is the compiled membership artifact blobs
-resolve into; family YAML files themselves store no model content.
+`model_id` (each row's unique model `id`, with `spec_index` for ordering).
+This is the compiled membership artifact blobs resolve into; family YAML
+files themselves store no model content.

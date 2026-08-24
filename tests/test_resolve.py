@@ -38,6 +38,8 @@ def test_registry_built_from_publications():
     assert len(rows) == 3
     names = {(r.model_name, r.spec_index) for r in rows}
     assert names == {("hstix50", 0), ("cuvol", 0), ("cuvol", 1)}
+    # every model row has its own unique id
+    assert len({r.model_id for r in rows}) == 3
 
 
 def test_resolve_by_model_name():

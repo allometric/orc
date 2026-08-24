@@ -39,7 +39,10 @@ _SET_KIND = "fixed_effects_set"
 
 @dataclass
 class RegistryRow:
-    """One queryable model/spec row, joined from model + spec records."""
+    """One queryable model row (a spec row for sets), joined from model + spec records.
+
+    ``model_id`` is the model's own content-addressed id — unique per row.
+    """
 
     model_id: str
     model_name: str
@@ -85,10 +88,10 @@ def build_registry_from_files(
         _, model_records, spec_records = flatten(models_file, str(path))
         models_by_id = {m.id: m for m in model_records}
         for spec in spec_records:
-            model = models_by_id[spec.model_id]
+            model = models_by_id[spec.set_id]
             rows.append(
                 RegistryRow(
-                    model_id=model.id,
+                    model_id=spec.id,
                     model_name=model.model_name,
                     model_type=model.model_type,
                     pub_id=model.pub_id,

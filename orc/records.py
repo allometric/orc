@@ -6,12 +6,15 @@ single denormalized row, so each table carries only its own scope:
 
 - ``PublicationRecord`` — one row per publication (BibTeX + pub descriptors).
 - ``ModelRecord`` — one row per model set / single model (set-level scope).
-- ``ModelSpecRecord`` — one row per specification (per-spec scope, resolved by
-  fallback to the set when the spec doesn't declare its own).
+- ``ModelSpecRecord`` — one row per model (per-spec scope for sets, resolved
+  by fallback to the set when the spec doesn't declare its own).
 
-Flattening rule: a ``fixed_effects`` model yields one spec row (spec_index 0);
-a ``fixed_effects_set`` yields one row per ``specifications`` entry. Content
-hash ``id`` stays at the set granularity; ``spec_index`` disambiguates rows.
+Flattening rule: a ``fixed_effects`` model yields one spec row (spec_index 0)
+whose id is the model's own content hash; a ``fixed_effects_set`` yields one
+row per ``specifications`` entry, each with its own content-addressed id
+derived from the set with only that specification — models never share an id.
+``spec_index`` orders rows within a set; ``set_id`` references the parent
+set's row in the ``models`` table.
 """
 
 from __future__ import annotations
@@ -21,7 +24,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 
 from orc.families import Maintainer, ModelFamily
-from orc.ingest import model_id
+from orc.ingest import model_id, model_spec_id
 from orc.schema import (
     Covariate,
     FixedEffectsModel,
@@ -95,11 +98,17 @@ class ModelRecord(BaseModel):
 
 
 class ModelSpecRecord(BaseModel):
-    """One queryable spec row. Scope is fallback-resolved from the set."""
+    """One queryable model row (a spec for sets). Scope is fallback-resolved from the set.
+
+    ``id`` is the model's own content-addressed id, unique per row;
+    ``set_id`` references the parent set's ``models.id`` (or the model's own
+    id for single ``fixed_effects`` models).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    model_id: str
+    id: str
+    set_id: str
     spec_index: int
     parameters: list[Parameter]
     taxa: list[Taxon] | None = None
@@ -141,13 +150,13 @@ class FamilyBlobRecord(BaseModel):
 
 
 class FamilyMemberRecord(BaseModel):
-    """One pinned membership row: blob -> resolved model/spec."""
+    """One pinned membership row: blob -> resolved model (spec row)."""
 
     model_config = ConfigDict(extra="forbid")
 
     family_id: str
     blob_id: str
-    model_id: str
+    model_id: str  # the model's own id (model_specs.id), unique per model
     spec_index: int
 
 
@@ -207,12 +216,19 @@ def _fallback(spec_value: Any, model_value: Any) -> Any:
     return spec_value if spec_value is not None else model_value
 
 
-def build_spec_records(model: Model, model_id: str) -> list[ModelSpecRecord]:
-    """Yield one ``ModelSpecRecord`` per specification (0 for single models)."""
+def build_spec_records(model: Model, set_id: str) -> list[ModelSpecRecord]:
+    """Yield one ``ModelSpecRecord`` per model (0 for single models).
+
+    A ``fixed_effects`` model yields one spec row (spec_index 0) whose id is
+    the model's own content hash; a ``fixed_effects_set`` yields one row per
+    ``specifications`` entry, each with a unique content-addressed id derived
+    from the set with only that specification.
+    """
     if isinstance(model, FixedEffectsModel):
         return [
             ModelSpecRecord(
-                model_id=model_id,
+                id=set_id,
+                set_id=set_id,
                 spec_index=0,
                 parameters=[
                     Parameter(name=k, value=v) for k, v in model.parameters.items()
@@ -227,7 +243,8 @@ def build_spec_records(model: Model, model_id: str) -> list[ModelSpecRecord]:
     if isinstance(model, FixedEffectsSetModel):
         return [
             ModelSpecRecord(
-                model_id=model_id,
+                id=model_spec_id(model, spec),
+                set_id=set_id,
                 spec_index=i,
                 parameters=[Parameter(name=k, value=v) for k, v in spec.parameters.items()],
                 taxa=_fallback(spec.taxa, model.taxa),
@@ -254,9 +271,9 @@ def flatten(models_file: ModelsFile, source_file: str) -> tuple[PublicationRecor
     model_records: list[ModelRecord] = []
     spec_records: list[ModelSpecRecord] = []
     for model in list(models_file.models) + list(models_file.model_sets):
-        model_id_ = _ensure_id(model)
+        set_id = _ensure_id(model)
         model_records.append(build_model_record(models_file, model, source_file))
-        spec_records.extend(build_spec_records(model, model_id_))
+        spec_records.extend(build_spec_records(model, set_id))
     return pub_record, model_records, spec_records
 
 

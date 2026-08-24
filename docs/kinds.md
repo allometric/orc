@@ -64,7 +64,17 @@ derived from content, not stored position, so it is:
   over a canonical dump (`sort_keys`, flow style and quoting normalized), not
   raw bytes;
 - **content-addressed** — edit any parameter and the id changes, which is what
-  lets a model family pin to exact model versions.
+  lets a model family pin to exact model versions;
+- **unique per model** — no two models ever share an id.
+
+A `fixed_effects` model is one model and gets one id. A `fixed_effects_set` is
+an *authoring container*, not a model: each of its `specifications` rows is
+its own model with its own id, derived from the set's shared content
+(prediction function, response, covariates, ...) plus that specification's
+parameters and scope. Editing one specification's parameters re-ids only that
+model; reordering specifications changes no ids. The set itself keeps a
+separate container id in the `models` table, referenced by each spec row's
+`set_id`.
 
 Hashing the model's *own* serialized content (rather than the whole file)
 means a change to an unrelated model in the same file does not re-id this
@@ -76,10 +86,13 @@ finds content-identical models across publications.
 
 Model `id` is optional in source. When present it must be an 8-character hex
 string; `ingest` verifies it matches the model's content hash and errors on
-mismatch. When absent, `ingest` derives and assigns the hash.
+mismatch. When absent, `ingest` derives and assigns the hash. Specification
+rows never carry an `id` — theirs is always derived.
 
 ### In the registry
 
-The compiled parquet tables carry the derived id per record as `id`, plus
+The compiled parquet tables carry the derived id per record as `id` (the
+model's id on `model_specs`, the set's container id on `models`), plus
 `pub_id` (the publication `key`) and `model_name`; they join on `pub_id` /
-`id` / `model_id`.
+`id` / `set_id`, and family membership joins on `model_id` (a
+`model_specs.id`).

@@ -22,6 +22,17 @@ def test_every_model_has_valid_unique_id():
     assert len(ids) == len(set(ids))
 
 
+def test_set_specs_are_distinct_registry_models():
+    # Each specification of a set is its own model with its own parameters
+    # and id — never the shared set id.
+    result = ingest(PUBLICATIONS)
+    hahn = [r for r in result.registry if r.pub_id == "hahn_1991"]
+    assert len(hahn) == 2
+    assert len({r.id for r in hahn}) == 2
+    assert all(r.parameters is not None for r in hahn)
+    assert {r.parameters["b_1"] for r in hahn} == {122.77, 0.25}
+
+
 def test_id_is_content_addressed():
     result = ingest(PUBLICATIONS)
     barnes = next(r for r in result.registry if r.model_name == "hstix50")

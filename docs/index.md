@@ -53,7 +53,7 @@ Exit code is `0` when every model validates, `1` if any errors are found.
 Add `--parquet dir` to also write the compiled records as six flat parquet
 tables — `publications`, `models`, `model_specs`, and the family tables
 `families`, `family_blobs`, `family_members` — joined on
-`pub_id` / `id` / `model_id` / `family_id`, using DuckDB as the writer (no
+`pub_id` / `id` / `set_id` / `model_id` / `family_id`, using DuckDB as the writer (no
 pyarrow dependency). Null-only columns stay properly typed, and empty tables
 still produce a zero-row, correctly typed parquet file:
 

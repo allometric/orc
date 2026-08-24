@@ -23,7 +23,15 @@ import yaml
 
 from orc.families import ModelFamily
 from orc.ids import content_hash
-from orc.schema import Model, ModelsFile, RegistryRecord
+from orc.schema import (
+    FixedEffectsSetModel,
+    Model,
+    ModelsFile,
+    RegistryRecord,
+    Scalar,
+    Specification,
+    Taxon,
+)
 YAML_SUFFIXES = (".yaml", ".yml")
 
 
@@ -93,8 +101,27 @@ def load_models_file(path: Path) -> ModelsFile:
 
 
 def model_id(model: Model) -> str:
-    """Content-addressed id for one model, ignoring any id in source."""
+    """Content-addressed id for one model, ignoring any id in source.
+
+    For a ``fixed_effects_set`` this is the set's *container* id; each
+    specification inside the set is its own model and gets its own id via
+    :func:`model_spec_id`.
+    """
     payload = model.model_dump(exclude={"id"})
+    return content_hash(payload)
+
+
+def model_spec_id(model_set: FixedEffectsSetModel, spec: Specification) -> str:
+    """Content-addressed id for one specification of a set.
+
+    The payload is the set model with ``specifications`` reduced to this one
+    spec, so every specification carries a unique id. The id is stable across
+    specification reordering and changes whenever any content the spec depends
+    on changes — the set's shared fields (name, response, covariates,
+    prediction_function, ...) or the spec's own parameters / scope.
+    """
+    payload = model_set.model_dump(exclude={"id"})
+    payload["specifications"] = [spec.model_dump()]
     return content_hash(payload)
 
 
@@ -128,17 +155,39 @@ def ingest(root: str | Path) -> IngestResult:
         result.files.append((path, models_file))
 
         for model in models_file.models:
+            model_id_ = _resolve_model_id(result, model, path)
+            seen_ids.setdefault(model_id_, []).append(
+                f"{models_file.publication.key}/{model.name}"
+            )
             _register_model(
-                result, models_file, model, path, seen_ids,
+                result, models_file, model, path,
+                id_=model_id_,
                 parameters=model.parameters,
                 parameter_names=None,
+                taxa=model.taxa,
+                region=model.region,
+                component=model.component,
+                descriptors=model.descriptors,
             )
         for model_set in models_file.model_sets:
-            _register_model(
-                result, models_file, model_set, path, seen_ids,
-                parameters=None,
-                parameter_names=list(model_set.specifications[0].parameters),
-            )
+            _resolve_model_id(result, model_set, path)
+            for spec_index, spec in enumerate(model_set.specifications):
+                spec_id = model_spec_id(model_set, spec)
+                seen_ids.setdefault(spec_id, []).append(
+                    f"{models_file.publication.key}/{model_set.name}#{spec_index}"
+                )
+                _register_model(
+                    result, models_file, model_set, path,
+                    id_=spec_id,
+                    parameters=spec.parameters,
+                    parameter_names=list(spec.parameters),
+                    taxa=spec.taxa if spec.taxa is not None else model_set.taxa,
+                    region=spec.region if spec.region is not None else model_set.region,
+                    component=spec.component if spec.component is not None else model_set.component,
+                    descriptors=spec.descriptors
+                    if spec.descriptors is not None
+                    else model_set.descriptors,
+                )
 
     for model_id_, refs in seen_ids.items():
         if len(refs) > 1:
@@ -189,17 +238,8 @@ def _register_family(
     result.family_files.append((path, family))
 
 
-def _register_model(
-    result: IngestResult,
-    models_file: ModelsFile,
-    model: Model,
-    path: Path,
-    seen_ids: dict[str, list[str]],
-    *,
-    parameters: dict[str, float] | None,
-    parameter_names: list[str] | None,
-) -> None:
-    """Validate the id and append one flat registry record for ``model``."""
+def _resolve_model_id(result: IngestResult, model: Model, path: Path) -> str:
+    """Cross-check (or assign) the source ``id``; return the model's content hash."""
     computed = model_id(model)
     if model.id is not None:
         if model.id != computed:
@@ -212,9 +252,26 @@ def _register_model(
             )
     else:
         model.id = computed
+    return computed
 
+
+def _register_model(
+    result: IngestResult,
+    models_file: ModelsFile,
+    model: Model,
+    path: Path,
+    *,
+    id_: str,
+    parameters: dict[str, float] | None,
+    parameter_names: list[str] | None,
+    taxa: list[Taxon] | None = None,
+    region: list[str] | None = None,
+    component: str | None = None,
+    descriptors: dict[str, Scalar | list] | None = None,
+) -> None:
+    """Append one flat registry record for one model (or one specification)."""
     record = RegistryRecord(
-        id=computed,
+        id=id_,
         pub_id=models_file.publication.key,
         pub_year=models_file.publication.year,
         model_name=model.name,
@@ -224,16 +281,13 @@ def _register_model(
         parameters=parameters,
         prediction_function=model.prediction_function,
         parameter_names=parameter_names,
-        taxa=model.taxa,
-        region=model.region,
-        component=model.component,
+        taxa=taxa,
+        region=region,
+        component=component,
         covt_defs=model.covt_defs,
         response_definition=model.response_definition,
         description=model.description,
-        descriptors=model.descriptors,
+        descriptors=descriptors,
         source_file=str(path),
     )
     result.registry.append(record)
-    seen_ids.setdefault(computed, []).append(
-        f"{models_file.publication.key}/{model.name}"
-    )

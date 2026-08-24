@@ -7,8 +7,10 @@ properly typed (not JSON) and empty tables still yield a zero-row, correctly
 typed parquet file.
 
 Consumers (R ``arrow``, DuckDB, polars, pandas, ...) read the six files
-directly and join on ``pub_id`` / ``id`` / ``model_id``; family membership
-joins on ``family_id`` / ``blob_id`` + ``model_id`` / ``spec_index``.
+directly and join on ``pub_id`` / ``id`` / ``set_id``; each ``model_specs``
+row is one model with its own unique ``id``, and ``set_id`` references its
+parent set's ``models.id``. Family membership joins on ``family_id`` /
+``blob_id`` + ``model_id`` (``model_specs.id``) / ``spec_index``.
 """
 
 from __future__ import annotations
@@ -82,7 +84,8 @@ MODELS_COLUMNS: dict[str, str] = {
 }
 
 MODEL_SPECS_COLUMNS: dict[str, str] = {
-    "model_id": "VARCHAR",
+    "id": "VARCHAR",
+    "set_id": "VARCHAR",
     "spec_index": "BIGINT",
     "parameters": "STRUCT(name VARCHAR, value DOUBLE)[]",
     "taxa": _TAXA,

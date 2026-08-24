@@ -18,6 +18,21 @@ python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ```
 
+Activate the environment so `orc` is on your PATH:
+
+```sh
+source .venv/bin/activate
+```
+
+(Windows: `.venv\Scripts\activate`.) Verify the install:
+
+```sh
+orc --help
+```
+
+Once activated, `orc` runs from anywhere — no need to prefix `.venv/bin/`.
+To leave the environment, run `deactivate`.
+
 ## Usage
 
 `orc` is typically used when sitting inside a checkout of the allometric/models
@@ -40,7 +55,7 @@ Exit code is `0` when every model validates, `1` if any errors are found.
 Add `--parquet dir` to also write the compiled records as six flat parquet
 tables — `publications`, `models`, `model_specs`, and the family tables
 `families`, `family_blobs`, `family_members` — joined on
-`pub_id` / `id` / `model_id` / `family_id`, using DuckDB as the writer (no
+`pub_id` / `id` / `set_id` / `model_id` / `family_id`, using DuckDB as the writer (no
 pyarrow dependency). Null-only columns stay properly typed, and empty tables
 still produce a zero-row, correctly typed parquet file:
 

@@ -38,7 +38,9 @@ invariants, `1` otherwise.
 Ingest every YAML file under `root` (or the single file, if `root` is a file)
 into a validated registry. Per file: parse YAML → validate against
 `ModelsFile` → derive each model's 8-char content id (or cross-check one
-already in source) → flatten to one `RegistryRecord` per model.
+already in source) → flatten to one `RegistryRecord` per model. Each
+specification of a `fixed_effects_set` is its own model with its own id, so a
+set of *N* specifications yields *N* records.
 
 Never raises for schema problems; failures are collected on the result.
 Returns `IngestResult`.
@@ -56,7 +58,13 @@ not a mapping.
 
 ### `model_id(model: Model) -> str`
 
-Content-addressed id for one model, ignoring any `id` in source.
+Content-addressed id for one model, ignoring any `id` in source. For a
+`fixed_effects_set` this is the set's container id.
+
+### `model_spec_id(model_set: FixedEffectsSetModel, spec: Specification) -> str`
+
+Content-addressed id for one specification of a set — the set with
+`specifications` reduced to that one spec, so each spec gets a unique id.
 
 ### `IngestResult`
 

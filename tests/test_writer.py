@@ -58,16 +58,22 @@ def test_join_specs_to_models_and_publications(tmp_path):
     con = duckdb.connect()
     rows = con.execute(
         f"""
-        SELECT s.model_id, m.id, p.pub_id, m.model_name, s.spec_index
+        SELECT s.id, s.set_id, m.id, p.pub_id, m.model_name, s.spec_index
         FROM read_parquet('{tmp_path}/model_specs.parquet') s
-        JOIN read_parquet('{tmp_path}/models.parquet') m ON m.id = s.model_id
+        JOIN read_parquet('{tmp_path}/models.parquet') m ON m.id = s.set_id
         JOIN read_parquet('{tmp_path}/publications.parquet') p ON p.pub_id = m.pub_id
         ORDER BY s.spec_index
         """
     ).fetchall()
     assert len(rows) == 3
-    assert {r[3] for r in rows} == {"hstix50", "cuvol"}
-    assert sorted(r[4] for r in rows) == [0, 0, 1]
+    # every model row carries its own unique id
+    assert len({r[0] for r in rows}) == 3
+    # specs of a set are distinct from their set's container id
+    for spec_id, set_id, model_id, _, model_name, _ in rows:
+        assert spec_id == set_id if model_name == "hstix50" else spec_id != set_id
+        assert set_id == model_id
+    assert {r[4] for r in rows} == {"hstix50", "cuvol"}
+    assert sorted(r[5] for r in rows) == [0, 0, 1]
 
 
 def test_columns_are_typed_not_json(tmp_path):
@@ -142,7 +148,8 @@ def test_family_tables_and_membership(tmp_path):
         f"""
         SELECT fm.blob_id, m.model_name, p.pub_id, fm.spec_index
         FROM read_parquet('{out}/family_members.parquet') fm
-        JOIN read_parquet('{out}/models.parquet') m ON m.id = fm.model_id
+        JOIN read_parquet('{out}/model_specs.parquet') s ON s.id = fm.model_id
+        JOIN read_parquet('{out}/models.parquet') m ON m.id = s.set_id
         JOIN read_parquet('{out}/publications.parquet') p ON p.pub_id = m.pub_id
         ORDER BY fm.blob_id
         """
