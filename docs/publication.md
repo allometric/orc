@@ -117,7 +117,7 @@ with a `response` and `covariates`.
 | `descriptors`         | map                     | no       | free-form key/value metadata            |
 | `description`         | string                  | no       | prose on what the model is              |
 | `notes`               | string                  | no       |                                         |
-| `id`                  | string                  | no       | `[0-9a-f]{8}`; see [Identifiers](kinds.md#identifiers) |
+| `id`                | string                  | no       | `[0-9a-f]{8}`; see [Identifiers](/orc/kinds/#identifiers) |
 
 `response` and `covariates` accept either the compact map form
 (`response: { hstix50: "ft" }`) or the object form
@@ -149,7 +149,7 @@ etc.
 | `descriptors`         | map                     | no       | free-form key/value metadata            |
 | `description`         | string                  | no       | prose on what the set is                |
 | `notes`               | string                  | no       |                                         |
-| `id`                  | string                  | no       | `[0-9a-f]{8}`; see [Identifiers](kinds.md#identifiers) |
+| `id`                | string                  | no       | `[0-9a-f]{8}`; see [Identifiers](/orc/kinds/#identifiers) |
 
 Each specification row is one parameter combination and may carry its own
 optional `taxa`, `region`, `component`, and `descriptors` scope:

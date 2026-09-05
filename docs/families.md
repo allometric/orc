@@ -12,7 +12,7 @@ by specifying a YAML file that describes the family and its member models,
 which are partitioned into model blobs, sets of models with strict
 response/covariate coherence. Models must be drawn from the compiled registry of
 `allometric` models, which is itself formed from the [publication
-files](publication.md) that contain the actual model content. Hence, users must
+files](/orc/publication/) that contain the actual model content. Hence, users must
 often add the needed publications to form a family.
 
 ```yaml
@@ -60,7 +60,7 @@ model_blobs:
 ```
 
 This family selects models from the hypothetical publication given in the
-[Publication schema documentation](publication.md): the `hstix50` model and the
+[Publication schema documentation](/orc/publication/): the `hstix50` model and
 two `cuvol` specifications each resolve to rows in the `doe_2024` publication.
 
 ## `family`

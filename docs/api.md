@@ -113,7 +113,7 @@ Pydantic v2 models. All use `extra="forbid"`.
 ## `orc.resolve`
 
 Resolves model family blobs against the compiled registry (see
-[Families](families.md#resolving-a-family)).
+[Families](/orc/families/#resolving-a-family)).
 
 | Function                       | Purpose                                                              |
 |--------------------------------|----------------------------------------------------------------------|
