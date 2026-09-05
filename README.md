@@ -9,7 +9,7 @@ Of paramount importance for model development are the publication and model
 family schema specifications, which can be viewed at the documentation site
 below.
 
-Documentation: <https://allometric.github.io/orc/>
+Documentation: <https://allometric.org/orc/>
 
 ## Install
 
@@ -69,5 +69,5 @@ do not fail the run.
 ## More
 
 - The YAML schema, model kinds, and identifier scheme are documented at
-  <https://allometric.github.io/orc/> (`docs/` in this repo).
+  <https://allometric.org/orc/> (`docs/` in this repo).
 - `TODO.md` and `model_families_plan.md` track upcoming work.

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0; url=https://allometric.org/orc/">
+    <link rel="canonical" href="https://allometric.org/orc/">
+    <title>ORC documentation moved</title>
+  </head>
+  <body>
+    <p>ORC documentation moved to <a href="https://allometric.org/orc/">allometric.org/orc/</a>.</p>
+    <script>
+      const oldPrefix = "/orc/";
+      const newPrefix = "https://allometric.org/orc/";
+      const suffix = location.pathname.startsWith(oldPrefix)
+        ? location.pathname.slice(oldPrefix.length)
+        : "";
+      const target = new URL(newPrefix + suffix, newPrefix);
+      target.search = location.search;
+      target.hash = location.hash;
+      location.replace(target.href);
+    </script>
+  </body>
+</html>

@@ -32,7 +32,7 @@ def _write(tmp_path: Path) -> dict[str, int]:
 
 
 def _corpus(tmp_path: Path) -> Path:
-    """A directory with the repo's publications + model_families, no mkdocs.yml."""
+    """A directory with the repo's publications + model_families."""
     root = tmp_path / "corpus"
     for src in (PUBLICATIONS, MODEL_FAMILIES):
         dest = root / src.name

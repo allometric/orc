@@ -157,7 +157,8 @@ optional `taxa`, `region`, `component`, and `descriptors` scope:
 | `component`  | string           | no       | per-row scope                  |
 | `descriptors`| map              | no       | per-row scope                  |
 
-!!! note "Parameter keys are derived from the rows"
-    Every specification row must use **identical parameter keys** — this is
-    validated. Parameter names are therefore derived from the rows, not
-    declared separately.
+:::note[Parameter keys are derived from the rows]
+Every specification row must use **identical parameter keys** — this is
+validated. Parameter names are therefore derived from the rows, not
+declared separately.
+:::
