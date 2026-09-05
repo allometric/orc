@@ -3,8 +3,6 @@ title: API
 description: The ORC command-line and Python API reference.
 ---
 
-# API
-
 The public surface is small: `orc.ingest` for the pipeline entry points,
 `orc.schema` for the validated models, and `orc.ids` for content addressing.
 Everything else (`orc.cli`, `orc.writer`) is internal.

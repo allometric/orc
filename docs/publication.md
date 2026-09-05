@@ -3,8 +3,6 @@ title: Publication
 description: The ORC publication YAML schema.
 ---
 
-# Publication
-
 Publications are the primary way in which models enter into the `allometric`
 ecosystem. Publications are represented as YAML files containing a metadata
 field (`publication`) and one or more model entries (`models` or `model_sets`).

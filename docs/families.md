@@ -3,8 +3,6 @@ title: Model families
 description: The ORC model family schema and resolution rules.
 ---
 
-# Model families
-
 A model family is a curated set of models that share a common purpose or theme.
 Examples include species-specific biomass modeling systems, site index
 functions that cover a geograhpic region, or others. Model families are formed
