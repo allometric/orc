@@ -1,3 +1,8 @@
+---
+title: Publication
+description: The ORC publication YAML schema.
+---
+
 # Publication
 
 Publications are the primary way in which models enter into the `allometric`

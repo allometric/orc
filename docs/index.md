@@ -1,3 +1,8 @@
+---
+title: orc
+description: Documentation for validating and indexing allometric model YAML.
+---
+
 # orc
 
 Orchestrate the production, validation, and indexing of the YAML truth source

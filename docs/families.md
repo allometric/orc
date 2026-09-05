@@ -1,3 +1,8 @@
+---
+title: Model families
+description: The ORC model family schema and resolution rules.
+---
+
 # Model families
 
 A model family is a curated set of models that share a common purpose or theme.

@@ -1,3 +1,8 @@
+---
+title: Model kinds
+description: ORC model structures, taxa, and content-addressed identifiers.
+---
+
 # Model kinds
 
 The top-level key picks the structure, and `type` (required on every entry) is

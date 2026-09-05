@@ -1,3 +1,8 @@
+---
+title: API
+description: The ORC command-line and Python API reference.
+---
+
 # API
 
 The public surface is small: `orc.ingest` for the pipeline entry points,
