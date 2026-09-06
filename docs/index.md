@@ -3,24 +3,23 @@ title: orc
 description: Documentation for validating and indexing allometric model YAML.
 ---
 
-Orchestrate the production, validation, and indexing of the YAML truth source
-for [allometric/models v4](https://github.com/allometric/models).
+`orc` orchestrates the production, validation, and indexing of the YAML truth
+source for [allometric/models](https://github.com/allometric/models). This is
+generally an internal package not intended for end users. Instead, it is used
+by the GitHub actions in the `models` repository to ensure YAML files are
+properly structured for further processing. Still, some documentation is useful
+here, as `orc` contains the schema definitions for allometric models.
 
-`orc` walks a directory of model YAML files, validates each against a declared
-schema, derives a stable 8-character content hash per model, and emits a flat
-registry (one record per model) for downstream compilation to Arrow/Parquet.
+In sum, `orc`:
 
-## What it does
-
-- **Validates** every publication YAML against a strict pydantic schema —
-  unknown keys are rejected (`extra="forbid"`), so typos surface as validation
-  errors instead of being silently absorbed.
+- **Validates** every publication YAML against a strict pydantic schema.
 - **Identifies** each model by a content-addressed 8-character hex id derived
   from the model's own canonical serialization: stable across reordering and
-  reformatting, and a dedupe signal for content-identical models.
+  reformatting.
 - **Emits** six flat parquet tables (`publications`, `models`, `model_specs`,
   `families`, `family_blobs`, `family_members`) via DuckDB — no pyarrow
-  dependency.
+  dependency. These parquet tables are used directly by the [allometric R
+  package](https://github.com/allometric/allometric).
 
 ## Install
 
@@ -29,10 +28,10 @@ python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 ```
 
-A virtual environment is required on Debian/Ubuntu, where system-wide
-installs are blocked by PEP 668 (`externally-managed-environment`). The
-editable install keeps `orc` in sync with this checkout; add `source .venv/bin/activate`
-if you prefer activating the venv instead of calling `.venv/bin/orc` directly.
+A virtual environment is required on Debian/Ubuntu, where system-wide installs
+are blocked by PEP 668 (`externally-managed-environment`). The editable install
+keeps `orc` in sync with this checkout; add `source .venv/bin/activate` if you
+prefer activating the venv instead of calling `.venv/bin/orc` directly.
 
 ## Usage
 
@@ -52,13 +51,13 @@ orc ingest path/to/allometric/models/publications
 orc ingest path/to/a/single.yaml
 ```
 
-Exit code is `0` when every model validates, `1` if any errors are found.
-Add `--parquet dir` to also write the compiled records as six flat parquet
-tables — `publications`, `models`, `model_specs`, and the family tables
-`families`, `family_blobs`, `family_members` — joined on
-`pub_id` / `id` / `set_id` / `model_id` / `family_id`, using DuckDB as the writer (no
-pyarrow dependency). Null-only columns stay properly typed, and empty tables
-still produce a zero-row, correctly typed parquet file:
+Exit code is `0` when every model validates, `1` if any errors are found. Add
+`--parquet dir` to also write the compiled records as six flat parquet tables —
+`publications`, `models`, `model_specs`, and the family tables `families`,
+`family_blobs`, `family_members` — joined on `pub_id` / `id` / `set_id` /
+`model_id` / `family_id`, using DuckDB as the writer (no pyarrow dependency).
+Null-only columns stay properly typed, and empty tables still produce a
+zero-row, correctly typed parquet file:
 
 ```sh
 orc ingest --parquet out/
