@@ -155,9 +155,9 @@ def test_doe_2024_example_resolves(tmp_path):
                 "prediction_function": "b_1 + b_2 * dsob^2",
                 "specifications": [
                     {"parameters": {"b_1": 122.77, "b_2": 0.4148},
-                     "taxa": [{"genus": "Pinus", "species": "resinosa"}]},
+                     "taxa": [{"family": "Pinaceae", "genus": "Pinus", "species": "resinosa"}]},
                     {"parameters": {"b_1": 0.25, "b_2": 1.3},
-                     "taxa": [{"genus": "Acer", "species": "saccharum"}]},
+                     "taxa": [{"family": "Sapindaceae", "genus": "Acer", "species": "saccharum"}]},
                 ],
             }
         ],

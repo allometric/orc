@@ -170,3 +170,93 @@ def test_description_rejected_when_non_string(barnes_text):
     data["models"][0]["description"] = 42
     with pytest.raises(ValidationError):
         ModelsFile.model_validate(data)
+
+
+def test_semicolon_separated_author_rejected(barnes_text):
+    # The krajicek_1961 regression: RefManageR (the R loader) cannot parse
+    # ';'-separated author lists, so they must fail here, not in the dist.
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["publication"]["author"] = (
+        "Krajicek, John E.; Brinkman, Kenneth A.; Gingrich, Samuel F."
+    )
+    with pytest.raises(ValidationError, match="must separate authors with ' and '"):
+        ModelsFile.model_validate(data)
+
+
+def test_and_separated_authors_accepted(barnes_text):
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["publication"]["author"] = (
+        "Krajicek, John E. and Brinkman, Kenneth A. and Gingrich, Samuel F."
+    )
+    ModelsFile.model_validate(data)
+
+
+def test_empty_author_between_and_rejected(barnes_text):
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["publication"]["author"] = "Smith, Jane and  and Doe, John"
+    with pytest.raises(ValidationError, match="empty name"):
+        ModelsFile.model_validate(data)
+
+
+def test_editor_is_bibtex_name_list(barnes_text):
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["publication"]["editor"] = "Rolim, Samir; Piotto, Daniel"
+    with pytest.raises(ValidationError, match="must separate authors with ' and '"):
+        ModelsFile.model_validate(data)
+    data["publication"]["editor"] = "Rolim, Samir and Piotto, Daniel"
+    ModelsFile.model_validate(data)
+
+
+def test_model_taxon_without_family_rejected(barnes_text):
+    # Mirrors the allometric R Taxon validity: genus requires family.
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["models"][0]["taxa"] = [{"genus": "Pinus"}]
+    with pytest.raises(ValidationError, match="must include family"):
+        ModelsFile.model_validate(data)
+
+
+def test_model_taxon_species_without_genus_rejected(barnes_text):
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["models"][0]["taxa"] = [{"family": "Pinaceae", "species": "resinosa"}]
+    with pytest.raises(ValidationError, match="must include genus"):
+        ModelsFile.model_validate(data)
+
+
+def test_model_taxon_family_only_accepted(barnes_text):
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["models"][0]["taxa"] = [{"family": "Pinaceae"}]
+    ModelsFile.model_validate(data)
+
+
+def test_set_spec_taxon_without_family_rejected(barnes_text):
+    import yaml
+
+    data = yaml.safe_load(barnes_text)
+    data["models"] = []
+    data["model_sets"] = [
+        {
+            "name": "set",
+            "type": "fixed_effects_set",
+            "response": {"x": "m"},
+            "prediction_function": "a * x",
+            "specifications": [
+                {"parameters": {"a": 1.0}, "taxa": [{"genus": "Pinus", "species": "resinosa"}]}
+            ],
+        }
+    ]
+    with pytest.raises(ValidationError, match="must include family"):
+        ModelsFile.model_validate(data)

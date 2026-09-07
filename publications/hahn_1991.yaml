@@ -18,9 +18,9 @@ model_sets:
     specifications:
       - parameters: { b_1: 122.77, b_2: 0.4148, b_3: -2.397e-05 }
         taxa:
-          - { genus: Pinus, species: resinosa }
-          - { genus: Pinus, species: strobus }
-          - { genus: Pinus, species: banksiana }
+          - { family: Pinaceae, genus: Pinus, species: resinosa }
+          - { family: Pinaceae, genus: Pinus, species: strobus }
+          - { family: Pinaceae, genus: Pinus, species: banksiana }
       - parameters: { b_1: 0.25, b_2: 1.3, b_3: -0.001 }
         taxa:
-          - { genus: Acer, species: saccharum }
+          - { family: Sapindaceae, genus: Acer, species: saccharum }

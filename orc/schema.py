@@ -34,6 +34,13 @@ Design choices encoded here:
   the sketch and normalize to objects.
 - ``id`` is optional in source; when present it must already be a valid 8-char
   orc id (and ``ingest`` cross-checks it against the derived content hash).
+- Two cross-repo contract rules guard the R loader, which compiles these YAMLs
+  into ``Taxon`` objects and ``RefManageR::BibEntry`` citations:
+  model/spec ``taxa`` must form a full hierarchy (family whenever genus or
+  species is given, genus whenever species is given), and publication
+  ``author``/``editor`` must be BibTeX name lists (`` and ``-separated).
+  Family ``select`` taxa stay partial — they are match criteria, not
+  declarations.
 """
 
 from __future__ import annotations
@@ -82,6 +89,16 @@ def _expand_map(values: Any, value_key: str = "units") -> Any:
 
 
 class Taxon(BaseModel):
+    """One taxonomic node: a partial hierarchy (family through species).
+
+    ``Taxon`` itself is intentionally permissive (any non-empty subset of
+    levels): it also models *selection criteria* in model families
+    (``families.py``), where ``{genus: Pinus, species: resinosa}`` is a
+    legitimate partial match. Declared model taxa — the rows the R loader
+    compiles into ``Taxon`` objects — must additionally satisfy the full
+    hierarchy rule enforced by :func:`_validate_declared_taxa`.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
     family: str | None = None
@@ -93,6 +110,66 @@ class Taxon(BaseModel):
         if self.family is None and self.genus is None and self.species is None:
             raise ValueError("taxon must name at least one of family/genus/species")
         return self
+
+
+def _validate_declared_taxa(taxa: list[Taxon] | None) -> None:
+    """Enforce the allometric R ``Taxon`` hierarchy rule on declared taxa.
+
+    The R loader rebuilds model/spec taxa as ``Taxon`` objects whose validity
+    requires a complete shallow-to-deep hierarchy (see validity_checks.R):
+    family whenever genus or species is given, and genus whenever species is
+    given. orc used to accept genus-only rows that shipped to the dist and
+    crashed ``load_models()``; this keeps the source corpus loadable.
+    Family-level *selections* (families YAML) are intentionally excluded.
+    """
+    if not taxa:
+        return
+    for taxon in taxa:
+        if taxon.family is None and (taxon.genus is not None or taxon.species is not None):
+            raise ValueError(
+                "declared taxon must include family when genus or species is given "
+                f"(got {taxon.model_dump(exclude_none=True)}); mirrors the allometric "
+                "R Taxon validity check"
+            )
+        if taxon.species is not None and taxon.genus is None:
+            raise ValueError(
+                "declared taxon must include genus when species is given "
+                f"(got {taxon.model_dump(exclude_none=True)}); mirrors the allometric "
+                "R Taxon validity check"
+            )
+
+
+def _validate_bibtex_name_list(value: str, field: str) -> str:
+    """Reject name lists the R loader's RefManageR cannot parse.
+
+    ``author``/``editor`` are passed verbatim to ``RefManageR::BibEntry``,
+    whose name parser accepts BibTeX syntax only: authors separated by
+    `` and ``, each written ``Surname, Given`` or ``Given Surname``. The
+    krajicek_1961 regression shipped a ``;``-separated list that orc accepted
+    but RefManageR rejected ("Invalid format"), breaking every model in the
+    published dist.
+    """
+    text = value.strip()
+    if not text:
+        raise ValueError(f"{field} must not be empty")
+    if ";" in text:
+        raise ValueError(
+            f"{field} must separate authors with ' and ' (BibTeX), not ';': {value!r}"
+        )
+    for part in text.split(" and "):
+        piece = part.strip()
+        if not piece:
+            raise ValueError(
+                f"{field} contains an empty name between ' and ' separators"
+            )
+        if "," in piece:
+            if not piece.split(",", 1)[0].strip():
+                raise ValueError(f"{field} name {piece!r} has an empty surname")
+        elif len(piece.split()) < 2:
+            raise ValueError(
+                f"{field} name {piece!r} must be 'Surname, Given' or 'Given Surname'"
+            )
+    return value
 
 
 class Response(BaseModel):
@@ -159,6 +236,11 @@ class ModelBase(BaseModel):
             raise ValueError(f"model id must be an 8-char hex string, got {self.id!r}")
         return self
 
+    @model_validator(mode="after")
+    def _validate_taxa_hierarchy(self) -> ModelBase:
+        _validate_declared_taxa(self.taxa)
+        return self
+
 
 class FixedEffectsModel(ModelBase):
     type: Literal["fixed_effects"]
@@ -175,6 +257,11 @@ class Specification(BaseModel):
     region: list[str] | None = None
     component: str | None = None
     descriptors: dict[str, Scalar | list] | None = None
+
+    @model_validator(mode="after")
+    def _validate_taxa_hierarchy(self) -> Specification:
+        _validate_declared_taxa(self.taxa)
+        return self
 
 
 class FixedEffectsSetModel(ModelBase):
@@ -231,6 +318,18 @@ class Publication(BaseModel):
         if v < 1000 or v > 2100:
             raise ValueError(f"implausible year {v}")
         return v
+
+    @field_validator("author")
+    @classmethod
+    def _author_format(cls, v: str) -> str:
+        return _validate_bibtex_name_list(v, "author")
+
+    @field_validator("editor")
+    @classmethod
+    def _editor_format(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        return _validate_bibtex_name_list(v, "editor")
 
 
 class ModelsFile(BaseModel):
